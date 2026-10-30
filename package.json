@@ -1,0 +1,22 @@
+{
+  "name": "anis-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@fontsource/amiri": "^5.3.0",
+    "@fontsource/tajawal": "^5.3.0",
+    "pdfjs-dist": "^3.11.174"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0"
+  }
+}

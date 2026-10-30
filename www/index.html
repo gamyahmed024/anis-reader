@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#1f1a16">
+<title>أنيس — رفيق القراءة</title>
+<style>
+@font-face{font-family:'Amiri';src:url(fonts/amiri-arabic-400-normal.woff2) format('woff2');font-weight:400;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF,U+200C-200E}
+@font-face{font-family:'Amiri';src:url(fonts/amiri-arabic-700-normal.woff2) format('woff2');font-weight:700;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF,U+200C-200E}
+@font-face{font-family:'Amiri';src:url(fonts/amiri-latin-400-normal.woff2) format('woff2');font-weight:400;unicode-range:U+0000-00FF}
+@font-face{font-family:'Tajawal';src:url(fonts/tajawal-arabic-400-normal.woff2) format('woff2');font-weight:400;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF,U+200C-200E}
+@font-face{font-family:'Tajawal';src:url(fonts/tajawal-arabic-500-normal.woff2) format('woff2');font-weight:500;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF,U+200C-200E}
+@font-face{font-family:'Tajawal';src:url(fonts/tajawal-arabic-700-normal.woff2) format('woff2');font-weight:700;unicode-range:U+0600-06FF,U+0750-077F,U+FB50-FDFF,U+FE70-FEFF,U+200C-200E}
+@font-face{font-family:'Tajawal';src:url(fonts/tajawal-latin-400-normal.woff2) format('woff2');font-weight:400;unicode-range:U+0000-00FF}
+@font-face{font-family:'Tajawal';src:url(fonts/tajawal-latin-700-normal.woff2) format('woff2');font-weight:700;unicode-range:U+0000-00FF}
+</style>
+<script src="lib/pdf.min.js"></script>
+<style>
+:root{
+  --bg:#f6efe4; --paper:#fffaf2; --ink:#2b2420; --muted:#8a7c70; --line:#e6dccd;
+  --accent:#c0703a; --accent-soft:#f3dcc7; --green:#5c8a5a; --card:#fffdf8;
+  --shadow:0 6px 24px rgba(60,40,20,.10);
+}
+body.glow{ --bg:#1b1612; --paper:#241d17; --ink:#e9d9c3; --muted:#a08c76; --line:#3a3027; --card:#2a221b; --accent-soft:#4a3322; }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:'Tajawal',system-ui,sans-serif;font-size:16px;transition:background .6s,color .6s}
+button{font-family:inherit;font-size:15px;border:0;border-radius:14px;padding:12px 16px;background:var(--accent);color:#fff;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.soft{background:var(--accent-soft);color:var(--ink)}
+button:disabled{opacity:.5}
+input,textarea,select{font-family:inherit;font-size:16px;width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink)}
+textarea{resize:vertical;min-height:90px}
+.screen{display:none;min-height:100%;padding:18px 16px 110px;max-width:720px;margin:0 auto}
+.screen.on{display:block}
+h1{font-size:24px;margin:6px 0 2px}
+h2{font-size:18px;margin:22px 0 10px}
+.muted{color:var(--muted);font-size:14px}
+.row{display:flex;gap:10px;align-items:center}
+.row.wrap{flex-wrap:wrap}
+.grow{flex:1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;text-align:center}
+.stat b{display:block;font-size:22px}
+.book{display:flex;gap:12px;align-items:center;padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line);margin-bottom:10px}
+.book .spine{width:42px;height:58px;border-radius:6px;display:grid;place-items:center;color:#fff;font-family:Amiri;font-size:22px;flex:none}
+.book .t{font-weight:700}
+.chip{display:inline-block;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--paper);margin:4px;cursor:pointer;font-size:14px}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.hero{display:flex;gap:14px;align-items:center}
+.bubble{background:var(--card);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:12px 14px;line-height:1.7;box-shadow:var(--shadow)}
+.tabbar{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-around;background:var(--paper);border-top:1px solid var(--line);padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:20}
+.tabbar button{background:none;color:var(--muted);padding:6px 10px;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.tabbar button.on{color:var(--accent)}
+.tabbar span{font-size:20px}
+.sheet-bg{position:fixed;inset:0;background:rgba(20,12,6,.45);display:none;z-index:50;align-items:flex-end;justify-content:center}
+.sheet-bg.on{display:flex}
+.sheet{background:var(--paper);width:100%;max-width:720px;max-height:88vh;overflow:auto;border-radius:24px 24px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));animation:up .25s ease}
+@keyframes up{from{transform:translateY(40px);opacity:0}}
+.toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:90;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%}
+.toast.on{opacity:.95}
+
+/* companion */
+.anis{width:64px;height:64px;flex:none;cursor:pointer}
+.anis .body{transform-origin:50% 60%;animation:breathe 5s ease-in-out infinite}
+.anis .eye{transform-origin:center;animation:blink 6s infinite}
+.anis.thinking .body{animation:breathe 1.4s ease-in-out infinite}
+.anis.happy .mouth{d:path("M24 40 Q32 48 40 40")}
+.anis.glow circle.halo{opacity:.55}
+@keyframes breathe{50%{transform:scale(1.04)}}
+@keyframes blink{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.1)}}
+
+/* reader */
+#reader{padding:0;max-width:none}
+.rtop{position:sticky;top:0;z-index:15;display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--line);transition:opacity .5s}
+.rtop.dim{opacity:.25}
+.rtop button{padding:8px 10px;background:none;color:var(--ink);font-size:18px}
+.timer{font-variant-numeric:tabular-nums;font-size:14px;color:var(--muted);min-width:52px;text-align:center}
+.pbar{height:3px;background:var(--line)}
+.pbar i{display:block;height:100%;background:var(--accent);width:0;transition:width 1s linear}
+.page-wrap{position:relative;margin:12px auto;max-width:820px;padding:0 8px}
+#pdfCanvas{width:100%;display:block;border-radius:6px;box-shadow:var(--shadow);background:#fff}
+body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
+#selLayer{position:absolute;inset:0 8px;display:none;touch-action:none;cursor:crosshair}
+#selLayer.on{display:block;background:rgba(192,112,58,.06)}
+#selBox{position:absolute;border:2px dashed var(--accent);background:rgba(192,112,58,.15);border-radius:6px;display:none}
+.textpage{font-family:'Amiri',serif;font-size:var(--fs,22px);line-height:2;padding:22px 18px;background:var(--paper);border-radius:10px;box-shadow:var(--shadow);margin:12px auto;max-width:720px;text-align:justify}
+.textpage p{margin:0 0 1em}
+.rbottom{position:fixed;bottom:0;left:0;right:0;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 35%);z-index:15}
+.rbottom .nav{background:var(--card);color:var(--ink);border:1px solid var(--line);padding:12px 18px}
+.pageno{font-size:13px;color:var(--muted)}
+.mini-anis{position:fixed;left:12px;bottom:78px;z-index:16}
+.mini-anis .anis{width:52px;height:52px}
+.here{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--muted);white-space:nowrap}
+.actbar{position:fixed;left:10px;right:10px;bottom:84px;z-index:30;display:none;gap:6px;flex-wrap:wrap;justify-content:center;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:var(--shadow)}
+.actbar.on{display:flex}
+.actbar button{padding:10px 12px;font-size:14px}
+.answer{line-height:1.9;white-space:pre-wrap}
+.answer b{color:var(--accent)}
+.dots::after{content:'…';animation:dots 1.2s steps(3) infinite}
+.thumb{max-width:100%;border-radius:8px;border:1px solid var(--line);margin-bottom:10px;max-height:160px;object-fit:contain;background:#fff}
+
+/* chat */
+.chat{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+.msg{max-width:88%;padding:11px 14px;border-radius:18px;line-height:1.8;white-space:pre-wrap}
+.msg.a{background:var(--card);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.u{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.composer{position:fixed;bottom:0;left:0;right:0;background:var(--paper);border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;z-index:20}
+.composer textarea{min-height:46px;height:46px}
+
+/* flashcards */
+.flash{min-height:220px;display:grid;place-items:center;text-align:center;font-size:19px;line-height:1.8;cursor:pointer;padding:24px}
+.flash .ans{color:var(--accent);margin-top:12px;display:none}
+.flash.flipped .ans{display:block}
+.end-overlay{position:fixed;inset:0;z-index:60;background:rgba(27,22,18,.82);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:#f6efe4;text-align:center;padding:24px}
+.end-overlay.on{display:flex}
+</style>
+</head>
+<body>
+
+<!-- ========== HOME ========== -->
+<section id="home" class="screen on">
+  <div id="urlWarn" class="card" style="display:none;margin-bottom:14px;border-color:#d9a06b">
+    <b>⚠️ افتح التطبيق من عنوان ثابت</b>
+    <div class="muted" style="margin-top:6px;line-height:1.7">فتحتَه الآن من عنوان مؤقت، فقد تضيع مكتبتك وبطاقاتك. اكتب هذا في شريط عنوان Chrome ثم أضفه للشاشة الرئيسية:</div>
+    <div style="direction:ltr;text-align:left;font-size:13px;background:var(--paper);padding:8px;border-radius:8px;margin-top:8px;word-break:break-all">file:///sdcard/Download/anis-reading-companion.html</div>
+  </div>
+  <div class="hero">
+    <div id="homeAnis"></div>
+    <div class="grow">
+      <h1 id="greet">أهلًا بك</h1>
+      <div class="muted" id="greetSub">أنا أنيس، أقرأ معك.</div>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="stStreak">0</b><span class="muted">أيام متتالية</span></div>
+    <div class="stat"><b id="stMin">0</b><span class="muted">دقيقة قراءة</span></div>
+    <div class="stat"><b id="stDue">0</b><span class="muted">بطاقة للمراجعة</span></div>
+  </div>
+  <div id="dueBox" style="margin-top:12px;display:none">
+    <button class="soft" style="width:100%" onclick="go('review')">🗂️ راجع بطاقاتك اليوم (<span id="dueN"></span>)</button>
+  </div>
+  <h2>مكتبتي</h2>
+  <div id="library"></div>
+  <div class="row wrap" style="margin-top:6px">
+    <label class="grow"><button class="ghost" style="width:100%" onclick="document.getElementById('fileIn').click()">＋ أضف كتاب PDF أو TXT</button></label>
+    <button class="ghost" onclick="openPaste()">📋 الصق نصًا</button>
+  </div>
+  <input type="file" id="fileIn" accept=".pdf,.txt,application/pdf,text/plain" style="display:none">
+  <div id="noKey" class="card" style="margin-top:18px;display:none">
+    <b>شغّل عقل أنيس ✨</b>
+    <div class="muted" style="margin:6px 0 10px">التطبيق يعمل كقارئ بدون مفتاح، لكن الشرح والمحاورة يحتاجان مفتاح Gemini API (مجاني من Google AI Studio).</div>
+    <button class="soft" onclick="go('settings')">إضافة المفتاح</button>
+  </div>
+</section>
+
+<!-- ========== READER ========== -->
+<section id="reader" class="screen">
+  <div class="rtop" id="rtop">
+    <button onclick="askEnd()" title="إنهاء">✕</button>
+    <div class="grow" style="font-size:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" id="rTitle"></div>
+    <span class="timer" id="rTimer">00:00</span>
+    <button onclick="toggleGlow()" title="إضاءة دافئة">🌙</button>
+    <button onclick="toggleSound()" id="sndBtn" title="الصوت">🔈</button>
+    <button id="selBtn" onclick="toggleSelect()" title="حدّد جزءًا" style="display:none">✂️</button>
+  </div>
+  <div class="pbar"><i id="pbar"></i></div>
+  <div id="pdfWrap" class="page-wrap" style="display:none">
+    <canvas id="pdfCanvas"></canvas>
+    <div id="selLayer"><div id="selBox"></div></div>
+  </div>
+  <div id="textWrap" style="display:none;padding:0 10px 120px"><div class="textpage" id="textPage"></div></div>
+  <div class="mini-anis" onclick="openAsk()"><div id="readAnis"></div><span class="here">أنا هنا</span></div>
+  <div class="rbottom">
+    <button class="nav" onclick="turn(1)">‹ التالية</button>
+    <span class="pageno" id="pageNo"></span>
+    <button class="nav" onclick="turn(-1)">السابقة ›</button>
+  </div>
+  <div class="actbar" id="actbar">
+    <button onclick="aiAct('friend')">💬 اشرح لي كصديق</button>
+    <button onclick="aiAct('life')">🌱 مثال من الحياة</button>
+    <button onclick="aiAct('irab')">✍️ أعرب</button>
+    <button onclick="aiAct('card')" class="soft">🗂️ بطاقة فهم</button>
+    <button onclick="aiAct('tarkib')" class="soft">✨ تركيب أتملّكه</button>
+    <button onclick="clearSel()" class="ghost">إلغاء</button>
+  </div>
+</section>
+
+<!-- ========== DEBRIEF ========== -->
+<section id="debrief" class="screen">
+  <div class="hero"><div id="debAnis"></div><div><h1>جلسة جميلة 🌿</h1><div class="muted" id="debSub"></div></div></div>
+  <div class="chat" id="chat"></div>
+  <div class="row" id="debBtns" style="gap:8px;margin-bottom:12px">
+    <button class="soft grow" onclick="finishDebrief()">✅ لخّص وأنشئ البطاقات</button>
+    <button class="ghost" onclick="skipDebrief()">تخطَّ</button>
+  </div>
+  <div class="composer" id="composer">
+    <button class="ghost" id="micBtn" onclick="dictate()" style="display:none">🎙️</button>
+    <textarea id="chatIn" placeholder="اشرح لأنيس بأسلوبك…"></textarea>
+    <button onclick="sendChat()">إرسال</button>
+  </div>
+</section>
+
+<!-- ========== REVIEW ========== -->
+<section id="review" class="screen">
+  <h1>المراجعة 🗂️</h1>
+  <div class="muted">اقلب البطاقة، ثم قل لأنيس بصدق: هل تذكّرت؟</div>
+  <div id="revArea" style="margin-top:16px"></div>
+  <h2>كل البطاقات</h2>
+  <div id="allCards"></div>
+</section>
+
+<!-- ========== SETTINGS ========== -->
+<section id="settings" class="screen">
+  <h1>الإعدادات</h1>
+  <h2>مفتاح Gemini API</h2>
+  <input id="keyIn" type="password" placeholder="AIza…" autocomplete="off">
+  <div class="muted" style="margin-top:6px">احصل عليه مجانًا من aistudio.google.com ← Get API key. يُحفظ على جهازك فقط.</div>
+  <h2>النموذج</h2>
+  <input id="modelIn" placeholder="gemini-flash-latest">
+  <div class="muted" style="margin-top:6px">الافتراضي gemini-flash-latest (أحدث Flash تلقائيًا).</div>
+  <h2>أسلوب الشرح</h2>
+  <div id="styleChips"></div>
+  <h2>اسم رفيقك</h2>
+  <input id="nameIn" placeholder="أنيس">
+  <div class="row" style="margin-top:18px">
+    <button class="grow" onclick="saveSettings()">حفظ</button>
+    <button class="ghost" onclick="testKey()">اختبار المفتاح</button>
+  </div>
+  <div id="testOut" class="muted" style="margin-top:10px"></div>
+  <h2>البيانات</h2>
+  <div class="card" id="storeBox" style="margin-bottom:10px"><span class="muted">جارٍ حساب المساحة…</span></div>
+  <button class="ghost" onclick="exportData()">📤 نسخ نسخة احتياطية (البطاقات والملخصات)</button>
+</section>
+
+<nav class="tabbar" id="tabbar">
+  <button data-go="home" class="on" onclick="go('home')"><span>📚</span>مكتبتي</button>
+  <button data-go="review" onclick="go('review')"><span>🗂️</span>مراجعة</button>
+  <button data-go="settings" onclick="go('settings')"><span>⚙️</span>إعدادات</button>
+</nav>
+
+<!-- sheets -->
+<div class="sheet-bg" id="sheetBg" onclick="if(event.target===this)closeSheet()"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+<div class="end-overlay" id="endOv">
+  <div id="endAnis"></div>
+  <div style="font-size:22px;font-family:Amiri">انتهى الوقت… أغلقتُ كتابي 📖</div>
+  <div id="endTxt" style="opacity:.85"></div>
+  <div class="row"><button onclick="toDebrief()">لنتحدث عمّا قرأنا</button><button class="ghost" style="color:#f6efe4;border-color:#776" onclick="extend()">+10 دقائق</button></div>
+</div>
+
+<script>
+/* ================= storage ================= */
+const LS='anis_v1';
+let S={books:[],cards:[],sessions:[],settings:{key:'',model:'gemini-flash-latest',style:'fusha',name:'أنيس'}};
+try{const raw=localStorage.getItem(LS); if(raw){const o=JSON.parse(raw); S={...S,...o,settings:{...S.settings,...(o.settings||{})}}}}catch(e){}
+function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){toast('تعذّر الحفظ على الجهاز')}}
+const memBlobs={};
+let dbP=null;
+function db(){ if(dbP) return dbP; dbP=new Promise((res,rej)=>{try{const r=indexedDB.open('anis',1);r.onupgradeneeded=()=>r.result.createObjectStore('blobs');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}}); return dbP;}
+async function putBlob(id,data){memBlobs[id]=data;try{const d=await db();await new Promise((res,rej)=>{const t=d.transaction('blobs','readwrite');t.objectStore('blobs').put(data,id);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}}
+async function getBlob(id){if(memBlobs[id])return memBlobs[id];try{const d=await db();return await new Promise((res,rej)=>{const r=d.transaction('blobs').objectStore('blobs').get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}catch(e){return null}}
+async function delBlob(id){delete memBlobs[id];try{const d=await db();d.transaction('blobs','readwrite').objectStore('blobs').delete(id)}catch(e){}}
+
+/* ================= helpers ================= */
+const $=id=>document.getElementById(id);
+const uid=()=>Math.random().toString(36).slice(2,10);
+const today=()=>new Date().toISOString().slice(0,10);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function fmtAns(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/^#+\s*/gm,'').replace(/^\s*[\*\-]\s+/gm,'• ')}
+let tT; function toast(m,ms=2600){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('on'),ms)}
+const name=()=>S.settings.name||'أنيس';
+const hues=['#c0703a','#5c8a5a','#4f6d8f','#8a5a7a','#a0813a','#3f7f7a'];
+
+function anisSVG(){return `<svg class="anis" viewBox="0 0 64 64"><circle class="halo" cx="32" cy="32" r="31" fill="#f3c48f" opacity="0" style="transition:opacity 1s"/><g class="body"><circle cx="32" cy="34" r="24" fill="#e9a66b"/><circle cx="32" cy="34" r="24" fill="url(#g)" opacity=".5"/><ellipse class="eye" cx="24" cy="31" rx="3" ry="3.6" fill="#2b2420"/><ellipse class="eye" cx="40" cy="31" rx="3" ry="3.6" fill="#2b2420"/><circle cx="19" cy="39" r="3" fill="#f08a6a" opacity=".45"/><circle cx="45" cy="39" r="3" fill="#f08a6a" opacity=".45"/><path class="mouth" d="M26 41 Q32 45 38 41" stroke="#2b2420" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M14 18 Q20 8 30 12" stroke="#7a4b2a" stroke-width="3" fill="none" stroke-linecap="round"/></g><defs><radialGradient id="g" cx=".35" cy=".3"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs></svg>`}
+function mood(m){document.querySelectorAll('.anis').forEach(a=>{a.classList.remove('thinking','happy');if(m)a.classList.add(m)})}
+['homeAnis','readAnis','debAnis','endAnis'].forEach(i=>$(i).innerHTML=anisSVG());
+
+/* ================= navigation ================= */
+function go(s){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));$(s).classList.add('on');
+  $('tabbar').style.display=(s==='reader'||s==='debrief')?'none':'flex';
+  document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.go===s));
+  if(s==='home')renderHome(); if(s==='review')renderReview(); if(s==='settings')renderSettings();
+  window.scrollTo(0,0);
+}
+function openSheet(html){$('sheet').innerHTML=html;$('sheetBg').classList.add('on')}
+function closeSheet(){$('sheetBg').classList.remove('on')}
+
+/* ================= Gemini ================= */
+function persona(){
+  const st={fusha:'بفصحى مبسطة ودودة',ammiya:'بالعامية المصرية الخفيفة',mix:'بفصحى مبسطة مع لمسة عامية مصرية'}[S.settings.style]||'بفصحى مبسطة';
+  return `أنت «${name()}»، صديق قراءة دافئ وذكي يجلس بجوار القارئ ويقرأ معه. تتكلم ${st}. لا تُطِل: الجودة في الإيجاز. لا تحرق أحداثًا قادمة في الكتاب. شجّع بصدق دون مبالغة، وصحّح بلطف («فكرتك قريبة، لكن…»). القارئ مدرّس لغة عربية يحب الفهم العميق. لا تستخدم عناوين Markdown.`;
+}
+const FALLBACKS=['gemini-flash-latest','gemini-3.6-flash','gemini-3.1-flash-lite','gemini-2.5-flash'];
+async function gemini(contents,opts={}){
+  const first=(S.settings.model||'gemini-flash-latest').trim();
+  const list=[first,first,...FALLBACKS.filter(m=>m!==first)];
+  let lastErr;
+  for(let i=0;i<list.length;i++){
+    try{ return await geminiOnce(list[i],contents,opts); }
+    catch(e){ lastErr=e; if(!e.busy) throw e; if(i===0) await new Promise(r=>setTimeout(r,1500)); }
+  }
+  throw new Error('خوادم Gemini مزدحمة الآن على كل النماذج، جرّب بعد دقيقة.');
+}
+async function geminiOnce(model,contents,{json=false,system}={}){
+  const key=S.settings.key; if(!key) throw new Error('NOKEY');
+  const body={systemInstruction:{parts:[{text:system||persona()}]},contents};
+  if(json) body.generationConfig={responseMimeType:'application/json'};
+  let r;
+  try{ r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)}); }
+  catch(e){ throw new Error('لا يمكن الاتصال بـ Gemini من هنا. تأكد من اتصالك بالإنترنت ثم أعد المحاولة.'); }
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){ const er=new Error(d?.error?.message||('HTTP '+r.status)); er.busy=[429,500,503,404].includes(r.status)||/demand|overloaded|unavailable/i.test(er.message); throw er; }
+  const txt=(d.candidates?.[0]?.content?.parts||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join('').trim();
+  if(!txt) throw new Error('لم يصل رد');
+  return txt;
+}
+function aiErr(e){ if(e.message==='NOKEY'){openSheet(`<b>أحتاج مفتاح Gemini لأفكّر معك 🔑</b><p class="muted">أضفه من الإعدادات، ويمكنك متابعة القراءة الآن.</p><button onclick="closeSheet()">حسنًا</button>`);} else toast('خطأ: '+e.message.slice(0,90),5000); mood(); }
+function pj(t){t=String(t).replace(/```json|```/g,'');try{return JSON.parse(t)}catch(e){const m=t.match(/\{[\s\S]*\}/);if(m)return JSON.parse(m[0]);throw new Error('رد غير مفهوم، أعد المحاولة')}}
+const imgPart=dataUrl=>({inline_data:{mime_type:'image/jpeg',data:dataUrl.split(',')[1]}});
+
+/* ================= library ================= */
+$('fileIn').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const id=uid(); const isPdf=/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name);
+  const title=f.name.replace(/\.(pdf|txt)$/i,'');
+  if(isPdf){ const buf=await f.arrayBuffer(); await putBlob(id,buf); S.books.push({id,title,type:'pdf',pos:0,total:0,added:Date.now(),notes:[]}); }
+  else { const txt=await f.text(); await putBlob(id,txt); S.books.push({id,title,type:'text',pos:0,total:0,added:Date.now(),notes:[]}); }
+  save(); renderHome(); toast('أُضيف «'+title+'» إلى مكتبتك 📚');
+});
+function openPaste(){openSheet(`<h2 style="margin-top:0">الصق نصًا لتقرأه</h2><input id="pT" placeholder="العنوان"><div style="height:8px"></div><textarea id="pX" style="min-height:220px" placeholder="الصق المقال أو الفصل هنا…"></textarea><div style="height:10px"></div><button style="width:100%" onclick="addPaste()">أضف</button>`)}
+async function addPaste(){const t=$('pT').value.trim()||'نص بلا عنوان',x=$('pX').value.trim(); if(!x)return toast('النص فارغ'); const id=uid(); await putBlob(id,x); S.books.push({id,title:t,type:'text',pos:0,total:0,added:Date.now(),notes:[]}); save(); closeSheet(); renderHome();}
+
+const SAMPLE=`الملكة اللغوية ليست حفظًا للقواعد، بل هي أن يصير الكلام الفصيح عادةً في اللسان والأذن، كما يصير المشي عادةً في القدمين. فالطفل لا يتعلم لغة أمه بحفظ الجداول، وإنما بكثرة السماع ثم المحاكاة ثم الاستعمال.
+
+ومن هنا كان طريق تكوين الملكة طريقًا طويلًا هادئًا: نصيبٌ يوميٌّ من النصوص العالية، يُقرأ بتأنٍّ، ويُفهم معناه، ثم يُعاد ويُحاكى. وليس المقصود أن تقرأ كثيرًا في يوم ثم تنقطع أسبوعًا، بل أن يكون لك وِردٌ صغير دائم، فإن قليل الدوام خير من كثير الانقطاع.
+
+والقراءة المثمرة قراءةٌ يقظة: يسأل فيها القارئ نفسه بعد كل فقرة: ما الذي قاله الكاتب؟ ولماذا قاله بهذه الطريقة؟ وهل أستطيع أن أعبّر عنه بلساني؟ فإذا عجز عن التعبير عرف أن الفهم لم يكتمل بعد.
+
+ثم تأتي مرحلة الاستعمال، وهي أن تكتب وتتكلم بما قرأت، فتستدعي التراكيب التي أعجبتك وتضعها في سياق جديد. وعندها فقط تنتقل العبارة من صفحة الكتاب إلى صفحة النفس.`;
+async function ensureSample(){ if(!S.books.length && !S.sampleAdded){const id='sample'; await putBlob(id,SAMPLE); S.books.push({id,title:'نصّ تجريبي: كيف تتكون الملكة اللغوية؟',type:'text',pos:0,total:0,added:Date.now(),notes:[]}); S.sampleAdded=true; save(); renderHome();} else if(S.books.find(b=>b.id==='sample')) putBlob('sample',SAMPLE); }
+
+function streak(){const days=new Set(S.sessions.map(s=>s.date));let n=0;let d=new Date();if(!days.has(today()))d.setDate(d.getDate()-1);while(days.has(d.toISOString().slice(0,10))){n++;d.setDate(d.getDate()-1)}return n}
+const dueCards=()=>S.cards.filter(c=>(c.due||0)<=Date.now());
+function renderHome(){
+  const h=new Date().getHours();
+  $('greet').textContent=(h<12?'صباح الخير':h<18?'مساء النور':'مساء الهدوء')+' ☕';
+  const last=S.sessions[S.sessions.length-1];
+  $('greetSub').textContent= last? `${name()} هنا. آخر مرة قرأنا ${last.min} دقيقة في «${last.title}».` : `أنا ${name()}، اختر كتابًا وسأجلس معك.`;
+  $('stStreak').textContent=streak(); $('stMin').textContent=S.sessions.reduce((a,s)=>a+s.min,0); const due=dueCards().length; $('stDue').textContent=due;
+  $('dueBox').style.display=due?'block':'none'; $('dueN').textContent=due;
+  $('noKey').style.display=S.settings.key?'none':'block';
+  const L=$('library');
+  if(!S.books.length){L.innerHTML='<div class="muted">مكتبتك فارغة. أضف كتابًا لتبدأ.</div>';return}
+  L.innerHTML=[...S.books].reverse().map((b,i)=>{const pct=b.total?Math.round((b.pos+1)/b.total*100):0;return `<div class="book"><div class="spine" style="background:${hues[b.title.length%hues.length]}">${esc(b.title.trim()[0]||'ك')}</div><div class="grow"><div class="t">${esc(b.title)}</div><div class="muted">${b.type==='pdf'?'PDF':'نص'} · ${b.total?('صفحة '+(b.pos+1)+' من '+b.total+' · '+pct+'%'):'لم يبدأ بعد'}</div></div><button onclick="setupSession('${b.id}')">اقرأ</button><button class="ghost" style="padding:10px" onclick="bookMenu('${b.id}')">⋯</button></div>`}).join('');
+}
+function toggleCards(id){const b=S.books.find(x=>x.id===id);b.cardsOn=b.cardsOn===false;save();bookMenu(id)}
+function bookMenu(id){const b=S.books.find(x=>x.id===id);const notes=(b.notes||[]).slice(-5).reverse();const on=b.cardsOn!==false;openSheet(`<h2 style="margin-top:0">${esc(b.title)}</h2><div class="card row" style="margin-bottom:12px"><div class="grow"><b>بطاقات المراجعة بعد الجلسة</b><div class="muted">${on?'مفعّلة: 2–3 بطاقات فقط لكل جلسة':'متوقفة: ملخص فقط (مناسب للروايات وقراءة المتعة)'}</div></div><button class="${on?'':'ghost'}" onclick="toggleCards('${id}')">${on?'تشغيل ✓':'إيقاف'}</button></div>${notes.length?'<b>ملخصات جلساتك:</b>'+notes.map(n=>`<div class="card" style="margin:8px 0"><div class="muted">${n.date} · صفحة ${n.page}</div><div class="answer">${fmtAns(n.summary)}</div></div>`).join(''):'<div class="muted">لا ملخصات بعد.</div>'}<div class="row" style="margin-top:14px"><button class="ghost grow" onclick="closeSheet()">إغلاق</button><button class="ghost" style="color:#b44" onclick="delBook('${id}')">حذف الكتاب</button></div>`)}
+function delBook(id){openSheet(`<b>حذف الكتاب؟</b><p class="muted">ستبقى بطاقاتك محفوظة.</p><div class="row"><button class="grow" style="background:#b44" onclick="reallyDel('${id}')">احذف</button><button class="ghost grow" onclick="closeSheet()">تراجع</button></div>`)}
+function reallyDel(id){S.books=S.books.filter(b=>b.id!==id);delBlob(id);save();closeSheet();renderHome()}
+
+/* ================= session setup (ritual) ================= */
+let setup={min:25,sound:'rain'};
+function setupSession(id){
+  const b=S.books.find(x=>x.id===id); setup.book=b;
+  const lastNote=(b.notes||[]).slice(-1)[0];
+  const welcome= lastNote? `أهلًا بعودتك 🌿 توقفنا عند صفحة ${lastNote.page}، وكانت خلاصة ما فهمتَه:\n«${lastNote.summary.split('\n')[0].slice(0,220)}»` : `جميل! أول جلسة لنا مع «${b.title}». سأقرأ معك بهدوء، ولن أقاطعك إلا إذا ناديتني.`;
+  openSheet(`<div class="hero">${anisSVG()}<div class="bubble grow" style="white-space:pre-wrap">${esc(welcome)}</div></div>
+  <h2>ماذا تريد أن تخرج به اليوم؟</h2><input id="intent" placeholder="مثلًا: أفهم الفكرة الأساسية للفصل الثاني">
+  <h2>مدة الجلسة</h2><div id="minChips">${[15,25,45,60].map(m=>`<span class="chip ${m===setup.min?'on':''}" onclick="pick('min',${m},this)">${m} د</span>`).join('')}</div>
+  <h2>الأجواء</h2><div>${[['rain','🌧️ مطر خفيف'],['brown','🔥 دفء هادئ'],['cafe','☕ همهمة مقهى'],['none','🤫 صمت']].map(([k,l])=>`<span class="chip ${k===setup.sound?'on':''}" onclick="pick('sound','${k}',this)">${l}</span>`).join('')}</div>
+  <div class="muted" style="margin-top:14px">ضع الهاتف أمامك، خذ نفسًا عميقًا… وابدأ.</div>
+  <button style="width:100%;margin-top:12px;padding:15px;font-size:17px" onclick="startSession()">📖 لنبدأ القراءة معًا</button>`);
+}
+function pick(k,v,el){setup[k]=v;el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+
+/* ================= ambient audio (generated, no files) ================= */
+let AC,ambNode,ambGain,soundOn=true;
+function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}return AC}
+function noiseBuf(kind){const c=ac(),len=c.sampleRate*4,b=c.createBuffer(1,len,c.sampleRate),d=b.getChannelData(0);let last=0,b0=0,b1=0,b2=0;for(let i=0;i<len;i++){const w=Math.random()*2-1;if(kind==='brown'){last=(last+0.02*w)/1.02;d[i]=last*3.5}else{b0=0.99765*b0+w*0.099;b1=0.963*b1+w*0.2965;b2=0.57*b2+w*1.0526;d[i]=(b0+b1+b2+w*0.1848)*0.11}}return b}
+function startAmbient(kind){stopAmbient();if(kind==='none'||!ac())return;const c=AC;c.resume?.();const src=c.createBufferSource();src.buffer=noiseBuf(kind==='brown'?'brown':'pink');src.loop=true;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=kind==='rain'?2600:kind==='cafe'?900:500;ambGain=c.createGain();ambGain.gain.value=0;ambGain.gain.linearRampToValueAtTime(kind==='cafe'?0.22:0.16,c.currentTime+3);src.connect(f).connect(ambGain).connect(c.destination);if(kind==='cafe'){const l=c.createOscillator(),lg=c.createGain();l.frequency.value=0.15;lg.gain.value=0.05;l.connect(lg).connect(ambGain.gain);l.start()}src.start();ambNode=src}
+function stopAmbient(){try{ambNode&&ambNode.stop()}catch(e){}ambNode=null}
+function toggleSound(){soundOn=!soundOn;$('sndBtn').textContent=soundOn?'🔈':'🔇';if(soundOn)startAmbient(setup.sound);else stopAmbient()}
+function flipSound(){if(!soundOn||!ac())return;const c=AC,s=c.createBufferSource(),b=c.createBuffer(1,c.sampleRate*0.18,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2)*0.5;s.buffer=b;const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=3000;const g=c.createGain();g.gain.value=0.35;s.connect(f).connect(g).connect(c.destination);s.start()}
+function chime(){if(!ac())return;const c=AC;[523.25,659.25,783.99].forEach((fr,i)=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=fr;o.type='sine';g.gain.setValueAtTime(0,c.currentTime+i*.25);g.gain.linearRampToValueAtTime(.15,c.currentTime+i*.25+.05);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+i*.25+2);o.connect(g).connect(c.destination);o.start(c.currentTime+i*.25);o.stop(c.currentTime+i*.25+2.1)})}
+
+/* ================= reader ================= */
+let R=null; // current session
+let pdfDoc=null,textPages=[];
+async function startSession(){
+  const b=setup.book; closeSheet();
+  R={book:b,intent:($('intent')?.value||'').trim(),start:Date.now(),target:setup.min*60,extra:0,pagesSeen:new Set(),pageImgs:{},pageTexts:{},selections:[],chat:[],away:0,ended:false};
+  $('rTitle').textContent=b.title; go('reader'); soundOn=true;$('sndBtn').textContent='🔈'; startAmbient(setup.sound);
+  try{document.documentElement.requestFullscreen?.().catch(()=>{})}catch(e){}
+  try{R.wake=await navigator.wakeLock?.request('screen')}catch(e){}
+  const data=await getBlob(b.id);
+  if(!data){toast('تعذّر فتح الكتاب، أعد إضافته');return go('home')}
+  if(b.type==='pdf'){
+    if(!window.pdfjsLib){toast('تعذّر تحميل قارئ PDF');return go('home')}
+    pdfjsLib.GlobalWorkerOptions.workerSrc='lib/pdf.worker.min.js';
+    pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(data.slice(0)),cMapUrl:'lib/cmaps/',cMapPacked:true,standardFontDataUrl:'lib/standard_fonts/'}).promise;
+    b.total=pdfDoc.numPages; $('pdfWrap').style.display='block';$('textWrap').style.display='none';$('selBtn').style.display='inline-block';
+  } else {
+    textPages=paginate(String(data)); b.total=textPages.length; $('pdfWrap').style.display='none';$('textWrap').style.display='block';$('selBtn').style.display='none';
+  }
+  if(b.pos>=b.total)b.pos=0; save(); await showPage();
+  clearInterval(R.tick); R.tick=setInterval(tick,1000); dimTop();
+}
+function paginate(t){const paras=t.replace(/\r/g,'').split(/\n\s*\n|\n/).map(s=>s.trim()).filter(Boolean);const pages=[];let cur=[],len=0;for(const p of paras){if(len+p.length>1100&&cur.length){pages.push(cur);cur=[];len=0}cur.push(p);len+=p.length}if(cur.length)pages.push(cur);return pages.length?pages:[['']]}
+async function showPage(){
+  const b=R.book; clearSel(); R.pagesSeen.add(b.pos); $('pageNo').textContent=`${b.pos+1} / ${b.total}`;
+  if(b.type==='pdf'){
+    const page=await pdfDoc.getPage(b.pos+1); const cw=Math.min(window.innerWidth-16,820);
+    const v1=page.getViewport({scale:1}); const scale=cw/v1.width*Math.min(window.devicePixelRatio||1,2.5); const vp=page.getViewport({scale});
+    const cv=$('pdfCanvas'); cv.width=vp.width; cv.height=vp.height; await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+  } else {
+    const ps=textPages[b.pos]; $('textPage').innerHTML=ps.map(p=>`<p>${esc(p)}</p>`).join(''); R.pageTexts[b.pos]=ps.join('\n');
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function pageImage(maxW=1100){const cv=$('pdfCanvas');const s=Math.min(1,maxW/cv.width);const c=document.createElement('canvas');c.width=cv.width*s;c.height=cv.height*s;c.getContext('2d').drawImage(cv,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.8)}
+async function turn(d){const b=R.book;const n=b.pos+d;if(n<0||n>=b.total){toast(n<0?'هذه أول صفحة':'وصلنا إلى آخر الكتاب 🎉');return}
+  if(b.type==='pdf'&&d>0){R.pageImgs[b.pos]=pageImage(900);const ks=Object.keys(R.pageImgs);if(ks.length>4)delete R.pageImgs[ks[0]]}
+  b.pos=n;save();flipSound();await showPage();dimTop()}
+let dimT;function dimTop(){$('rtop').classList.remove('dim');clearTimeout(dimT);dimT=setTimeout(()=>$('rtop').classList.add('dim'),4000)}
+$('rtop').addEventListener('click',dimTop);
+function elapsed(){return Math.floor((Date.now()-R.start)/1000)}
+function tick(){if(!R||R.ended)return;const e=elapsed(),tot=R.target+R.extra,left=Math.max(0,tot-e);$('rTimer').textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');$('pbar').style.width=Math.min(100,e/tot*100)+'%';
+  const half=Math.floor(tot/2);if(e===half){document.querySelectorAll('#readAnis .anis').forEach(a=>{a.classList.add('glow');setTimeout(()=>a.classList.remove('glow'),6000)})}
+  if(left===0)timeUp()}
+function timeUp(){R.ended=true;chime();if(ambGain&&AC)ambGain.gain.linearRampToValueAtTime(0,AC.currentTime+4);const m=Math.max(1,Math.round(elapsed()/60));$('endTxt').textContent=`قرأنا معًا ${m} دقيقة و${R.pagesSeen.size} صفحة.`;mood('happy');$('endOv').classList.add('on')}
+function extend(){R.extra+=600;R.ended=false;$('endOv').classList.remove('on');mood();if(soundOn)startAmbient(setup.sound)}
+function askEnd(){openSheet(`<b>هل ننهي الجلسة الآن؟</b><p class="muted">مرّت ${Math.round(elapsed()/60)} دقيقة.</p><div class="row"><button class="grow" onclick="closeSheet();toDebrief()">نعم، لنتحدث</button><button class="ghost grow" onclick="closeSheet()">أكمل القراءة</button></div>`)}
+document.addEventListener('visibilitychange',()=>{if(!R||R.ended||!$('reader').classList.contains('on'))return;if(document.hidden){R.hiddenAt=Date.now()}else if(R.hiddenAt){const s=(Date.now()-R.hiddenAt)/1000;R.hiddenAt=0;if(s>8){R.away++;toast(`${name()}: أهلًا بعودتك 🙂 كنا في صفحة ${R.book.pos+1}`)}navigator.wakeLock?.request('screen').then(w=>R.wake=w).catch(()=>{})}});
+function toggleGlow(){document.body.classList.toggle('glow');S.glow=document.body.classList.contains('glow');save()}
+if(S.glow)document.body.classList.add('glow');
+
+/* ---- selection ---- */
+let selMode=false,sel=null;
+function toggleSelect(){selMode=!selMode;$('selLayer').classList.toggle('on',selMode);$('selBtn').style.background=selMode?'var(--accent-soft)':'none';if(selMode)toast('اسحب إصبعك على الجزء الذي تريده');else clearSel()}
+(function(){const L=$('selLayer'),B=$('selBox');let p0=null;
+  L.addEventListener('pointerdown',e=>{L.setPointerCapture(e.pointerId);const r=L.getBoundingClientRect();p0={x:e.clientX-r.left,y:e.clientY-r.top};Object.assign(B.style,{display:'block',left:p0.x+'px',top:p0.y+'px',width:0,height:0})});
+  L.addEventListener('pointermove',e=>{if(!p0)return;const r=L.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;Object.assign(B.style,{left:Math.min(x,p0.x)+'px',top:Math.min(y,p0.y)+'px',width:Math.abs(x-p0.x)+'px',height:Math.abs(y-p0.y)+'px'})});
+  L.addEventListener('pointerup',()=>{if(!p0)return;p0=null;const w=B.offsetWidth,h=B.offsetHeight;if(w<20||h<12){B.style.display='none';return}
+    const cv=$('pdfCanvas'),k=cv.width/cv.getBoundingClientRect().width;const c=document.createElement('canvas');const sx=B.offsetLeft*k,sy=B.offsetTop*k,sw=w*k,sh=h*k;const s=Math.min(1,1400/sw);c.width=sw*s;c.height=sh*s;c.getContext('2d').drawImage(cv,sx,sy,sw,sh,0,0,c.width,c.height);
+    sel={kind:'img',data:c.toDataURL('image/jpeg',.88)};$('actbar').classList.add('on')});
+})();
+document.addEventListener('selectionchange',()=>{if(!R||R.book.type!=='text'||!$('reader').classList.contains('on'))return;const t=String(getSelection()).trim();if(t.length>1&&$('textPage').contains(getSelection().anchorNode)){sel={kind:'text',data:t};$('actbar').classList.add('on')}});
+function clearSel(){sel=null;$('actbar').classList.remove('on');$('selBox').style.display='none';try{getSelection().removeAllRanges()}catch(e){}}
+function selParts(prompt){const ctx=R.book.type==='text'?`\n\n(سياق الصفحة كاملة:\n${R.pageTexts[R.book.pos]})`:'';return sel.kind==='img'?[{text:prompt},imgPart(sel.data)]:[{text:prompt+`\n\nالمقطع المحدد:\n«${sel.data}»`+ctx}]}
+async function aiAct(kind){
+  if(!sel)return; const cur=sel; const P={
+    friend:'اشرح لي هذا المقطع كأنك صديقي الذي يجلس بجانبي: بسّطه في 3–5 جمل، ثم أعطني الفكرة في سطر واحد بخط عريض.',
+    life:'أعطني مثالًا واحدًا قصيرًا من الحياة اليومية يوضّح فكرة هذا المقطع، ثم اربطه بالمقطع في جملة.',
+    irab:'أعرب الجملة/الجمل الأساسية في هذا المقطع إعرابًا مختصرًا واضحًا، ونبّه على أي موضع دقيق أو لطيفة بلاغية إن وُجدت.',
+    card:'حوّل فكرة هذا المقطع إلى بطاقة استذكار واحدة. أعد JSON فقط: {"q":"سؤال يختبر الفهم لا الحفظ","a":"إجابة موجزة"}',
+    tarkib:'أريد أن أتملّك التركيب/العبارة الأجمل في هذا المقطع وأستعملها في كلامي. اختر أبلغ عبارة فيه (أو العبارة المحددة نفسها إن كانت قصيرة). أعد JSON فقط: {"q":"موقف أو معنى بصيغة سؤال: كيف تعبّر عن كذا بأسلوب فصيح؟","a":"العبارة كما هي في النص","use":"جملة جديدة من إنشائك تستعمل التركيب نفسه في سياق مختلف"}'}[kind];
+  const thumb=cur.kind==='img'?`<img class="thumb" src="${cur.data}">`:`<div class="muted" style="margin-bottom:8px;font-family:Amiri;font-size:18px">«${esc(cur.data.slice(0,240))}»</div>`;
+  openSheet(`<div class="hero">${anisSVG()}<div class="grow muted dots">${name()} يقرأ المقطع</div></div><div style="margin-top:10px">${thumb}</div>`); mood('thinking');
+  try{
+    const out=await gemini([{role:'user',parts:selParts(P)}],{json:kind==='card'}); mood();
+    R.selections.push({kind,text:cur.kind==='text'?cur.data:'(مقطع مصوّر)',out:out.slice(0,600)});
+    if(kind==='card'||kind==='tarkib'){const c=pj(out);const a=kind==='tarkib'&&c.use?`${c.a}\n\nمثال لاستعماله: ${c.use}`:c.a;addCard(c.q,a,null,kind==='tarkib'?'tarkib':'fahm');openSheet(`<b>${kind==='tarkib'?'✨ حُفظ التركيب':'🗂️ حُفظت البطاقة'}</b><div class="card" style="margin:10px 0"><div>${esc(c.q)}</div><div class="muted answer" style="margin-top:6px">${esc(a)}</div></div><button style="width:100%" onclick="closeSheet()">أكمل القراءة</button>`)}
+    else openSheet(`<div class="hero">${anisSVG()}<b>${name()}</b></div><div style="margin-top:10px">${thumb}</div><div class="answer">${fmtAns(out)}</div><div class="row" style="margin-top:14px"><button class="grow" onclick="closeSheet()">فهمت، أكمل 📖</button><button class="ghost" onclick="simpler()">بسّطها أكثر</button></div>`);
+    R.lastQ={parts:selParts(P),out};
+  }catch(e){closeSheet();aiErr(e)}
+  clearSel(); if(selMode)toggleSelect();
+}
+async function simpler(){if(!R.lastQ)return;mood('thinking');$('sheet').querySelector('.answer').innerHTML='<span class="dots">لحظة</span>';try{const out=await gemini([{role:'user',parts:R.lastQ.parts},{role:'model',parts:[{text:R.lastQ.out}]},{role:'user',parts:[{text:'لم تتضح لي بعد. بسّطها أكثر جدًا كأني طالب في الإعدادية، بتشبيه واحد.'}]}]);R.lastQ.out=out;mood();$('sheet').querySelector('.answer').innerHTML=fmtAns(out)}catch(e){aiErr(e)}}
+function openAsk(){openSheet(`<div class="hero">${anisSVG()}<div class="bubble grow">نعم؟ أنا معك. اسألني عن هذه الصفحة 🙂</div></div><textarea id="askIn" style="margin-top:12px" placeholder="مثلًا: ماذا يقصد الكاتب بـ…؟"></textarea><div class="row" style="margin-top:10px"><button class="grow" onclick="askPage()">اسأل</button><button class="ghost" onclick="closeSheet()">عودة للقراءة</button></div><div id="askOut" class="answer" style="margin-top:12px"></div>`);setTimeout(()=>$('askIn')?.focus(),200)}
+async function askPage(){const q=$('askIn').value.trim();if(!q)return;const b=R.book;const parts=[{text:`سؤالي عن الصفحة التي أقرؤها الآن (أجب باختصار ثم أعدني للقراءة بلطف): ${q}`}];if(b.type==='pdf')parts.push(imgPart(pageImage()));else parts.push({text:'نص الصفحة:\n'+R.pageTexts[b.pos]});$('askOut').innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');try{const out=await gemini([{role:'user',parts}]);mood();$('askOut').innerHTML=fmtAns(out);R.selections.push({kind:'ask',text:q,out:out.slice(0,600)})}catch(e){$('askOut').innerHTML='';aiErr(e)}}
+
+/* ================= debrief (Feynman) ================= */
+function contextParts(){const parts=[];const b=R.book;if(b.type==='pdf'){if(!R.pageImgs[b.pos])R.pageImgs[b.pos]=pageImage(900);Object.values(R.pageImgs).slice(-4).forEach(d=>parts.push(imgPart(d)))}else{const t=[...R.pagesSeen].sort((a,b)=>a-b).map(i=>R.pageTexts[i]).filter(Boolean).join('\n\n');parts.push({text:'ما قرأه في هذه الجلسة:\n'+t.slice(-9000)})}
+  if(R.selections.length)parts.push({text:'مواضع توقف عندها أثناء القراءة:\n'+R.selections.map(s=>'- '+s.text.slice(0,200)).join('\n')});return parts}
+function debSystem(){return persona()+`\nأنت الآن في «جلسة ما بعد القراءة» بأسلوب فاينمان: تتقمص دور طالب فضولي يطلب من القارئ أن يشرح له ما فهمه. بعد كل شرح: علّق بدفء في جملة، صحّح بلطف إن وُجد خطأ أو نقص بالاستناد إلى النص، ثم اسأل سؤالًا واحدًا قصيرًا يكشف عمق الفهم (لماذا؟ كيف؟ مثال؟). ردك 2–4 جمل فقط. هدف القارئ اليوم: ${R.intent||'غير محدد'}.`}
+function toDebrief(){
+  if(!R)return; clearInterval(R.tick); R.ended=true; stopAmbient(); try{R.wake?.release()}catch(e){}; try{document.fullscreenElement&&document.exitFullscreen()}catch(e){}
+  $('endOv').classList.remove('on'); if(R.book.type==='pdf'&&pdfDoc&&!R.pageImgs[R.book.pos])R.pageImgs[R.book.pos]=pageImage(900);
+  const min=Math.max(1,Math.round(elapsed()/60)); R.min=min;
+  S.sessions.push({date:today(),min,title:R.book.title,pages:R.pagesSeen.size}); save();
+  $('debSub').textContent=`${min} دقيقة · ${R.pagesSeen.size} صفحة · «${R.book.title}»`; go('debrief'); mood('happy');
+  R.chat=[]; $('chat').innerHTML='';
+  const first=`أغلقنا الكتاب ☕ والآن دوري أن أتعلم منك! تخيّل أني صديقك ولم أقرأ هذه الصفحات: اشرح لي بأسلوبك أهم فكرة خرجتَ بها اليوم.`;
+  addMsg('a',first); R.chat.push({role:'model',parts:[{text:first}]});
+  $('micBtn').style.display=(window.SpeechRecognition||window.webkitSpeechRecognition)?'inline-block':'none';
+}
+function addMsg(who,t){const d=document.createElement('div');d.className='msg '+who;d.innerHTML=who==='a'?fmtAns(t):esc(t);$('chat').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});return d}
+async function sendChat(){const t=$('chatIn').value.trim();if(!t)return;$('chatIn').value='';addMsg('u',t);R.chat.push({role:'user',parts:[{text:t}]});
+  const turns=R.chat.filter(m=>m.role==='user').length;
+  if(!S.settings.key){const fb=['جميل! وما المثال الذي يوضح هذه الفكرة؟','وهل تتفق مع الكاتب؟ لماذا؟','رائع. لو أردت أن تطبّق هذه الفكرة غدًا، ماذا ستفعل؟'][Math.min(turns-1,2)];addMsg('a',fb);R.chat.push({role:'model',parts:[{text:fb}]});return}
+  const w=addMsg('a','');w.innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');
+  try{const contents=[{role:'user',parts:[...contextParts(),{text:'(هذا ما قرأتُه. ابدأ المحاورة.)'}]},{role:'model',parts:[{text:'حسنًا.'}]},...R.chat];
+    let out=await gemini(contents,{system:debSystem()+(turns>=4?'\nهذه آخر جولة: اختم بتشجيع واقترح عليه الضغط على «لخّص وأنشئ البطاقات».':'')});mood();w.innerHTML=fmtAns(out);R.chat.push({role:'model',parts:[{text:out}]})}
+  catch(e){w.remove();R.chat.pop();aiErr(e)}}
+async function finishDebrief(){
+  const b=R.book;const userTalk=R.chat.filter(m=>m.role==='user').map(m=>m.parts[0].text).join('\n');
+  if(!S.settings.key){if(userTalk){b.notes=b.notes||[];b.notes.push({date:today(),page:b.pos+1,summary:userTalk.slice(0,600)});save()}return endAll('حفظتُ كلامك كملخص للجلسة 📝')}
+  $('debBtns').innerHTML='<div class="muted dots" style="padding:10px">أكتب الملخص وأصنع البطاقات</div>';mood('thinking');
+  try{const out=await gemini([{role:'user',parts:[...contextParts(),{text:`هذه محاورتنا:\n${R.chat.map(m=>(m.role==='user'?'القارئ: ':'أنت: ')+m.parts[0].text).join('\n')}\n\nأعد JSON فقط بهذا الشكل:\n{"summary":"ملخص الجلسة في 3–5 أسطر بصيغة المتكلم عن القارئ (فهمتُ أن…)، مع تصحيح أي فهم خاطئ ظهر","cards":[{"q":"سؤال فهم","a":"إجابة موجزة"}],"next":"جملة تشجيعية واحدة للجلسة القادمة"}\n${b.cardsOn===false?'اجعل cards مصفوفة فارغة [] (البطاقات متوقفة لهذا الكتاب).':'اجعل البطاقات 2 أو 3 فقط، تختبر الفهم لا الحفظ، وركّز على المواضع التي تعثّر فيها القارئ.'}`}]}],{json:true});
+    const j=pj(out);j.cards=Array.isArray(j.cards)?j.cards:[];if(b.cardsOn!==false)j.cards.slice(0,3).forEach(c=>addCard(c.q,c.a,b.title,'fahm'));else j.cards=[];b.notes=b.notes||[];b.notes.push({date:today(),page:b.pos+1,summary:j.summary||''});save();mood('happy');
+    $('chat').insertAdjacentHTML('beforeend',`<div class="card"><b>📝 خلاصة جلستنا</b><div class="answer" style="margin-top:6px">${fmtAns(j.summary)}</div><div class="muted" style="margin-top:10px">${j.cards.length?`🗂️ أضفتُ ${Math.min(3,j.cards.length)} بطاقات للمراجعة. `:''}${esc(j.next||'')}</div></div>`);
+    $('debBtns').innerHTML='<button class="grow" onclick="endAll()">إلى المكتبة 📚</button>';$('composer').style.display='none';$('chat').lastElementChild.scrollIntoView({behavior:'smooth'});
+  }catch(e){$('debBtns').innerHTML='<button class="soft grow" onclick="finishDebrief()">إعادة المحاولة</button><button class="ghost" onclick="skipDebrief()">تخطَّ</button>';aiErr(e)}}
+function skipDebrief(){endAll()}
+function endAll(msg){$('composer').style.display='flex';$('debBtns').innerHTML='<button class="soft grow" onclick="finishDebrief()">✅ لخّص وأنشئ البطاقات</button><button class="ghost" onclick="skipDebrief()">تخطَّ</button>';R=null;mood();go('home');if(msg)toast(msg)}
+let rec;function dictate(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;try{rec=new SR();rec.lang='ar-EG';rec.interimResults=true;$('micBtn').textContent='⏺️';rec.onresult=e=>{$('chatIn').value=[...e.results].map(r=>r[0].transcript).join(' ')};rec.onend=()=>$('micBtn').textContent='🎙️';rec.onerror=()=>{$('micBtn').textContent='🎙️';toast('الميكروفون غير متاح هنا')};rec.start()}catch(e){toast('الميكروفون غير متاح')}}
+
+/* ================= flashcards (spaced repetition) ================= */
+const STEPS=[1,3,7,14,30,60];
+function addCard(q,a,src,type){if(!q)return;S.cards.push({id:uid(),q,a,src:src||R?.book?.title||'',type:type||'fahm',lvl:0,due:Date.now()+864e5});save()}
+function delCard(id){S.cards=S.cards.filter(c=>c.id!==id);save();renderReview();renderHome()}
+const badge=c=>c.type==='tarkib'?'<span class="chip" style="padding:2px 10px;margin:0 0 6px;font-size:12px">✨ تركيب</span>':'<span class="chip" style="padding:2px 10px;margin:0 0 6px;font-size:12px">🗂️ فهم</span>';
+let revQ=[];
+function renderReview(){revQ=dueCards();showRev();$('allCards').innerHTML=S.cards.length?[...S.cards].reverse().map(c=>`<div class="card" style="margin-bottom:8px">${badge(c)}<div>${esc(c.q)}</div><div class="muted answer" style="margin-top:4px">${esc(c.a)}</div><div class="row" style="margin-top:6px"><div class="muted grow" style="font-size:12px">${esc(c.src)} · المراجعة القادمة: ${new Date(c.due).toLocaleDateString('ar-EG')}</div><button class="ghost" style="padding:6px 10px;font-size:13px" onclick="delCard('${c.id}')">حذف</button></div></div>`).join(''):'<div class="muted">ستظهر هنا البطاقات التي تصنعها أثناء القراءة وبعدها.</div>'}
+function showRev(){const A=$('revArea');if(!revQ.length){A.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:40px">🌿</div><b>لا شيء للمراجعة الآن</b><div class="muted">سأذكّرك حين يحين موعد البطاقة.</div></div>`;return}
+  const c=revQ[0];A.innerHTML=`<div class="muted">${revQ.length} متبقية</div><div class="card flash" id="fl" onclick="this.classList.add('flipped')"><div>${badge(c)}<div>${esc(c.q)}</div><div class="ans answer">${esc(c.a)}</div><div class="muted" style="font-size:13px;margin-top:14px">اضغط لتقلب البطاقة</div></div></div><div class="row" style="margin-top:12px"><button class="grow" style="background:var(--green)" onclick="grade(true)">تذكّرتُ ✓</button><button class="ghost grow" onclick="grade(false)">نسيتُ ↺</button></div>`}
+function grade(ok){const c=revQ.shift();const card=S.cards.find(x=>x.id===c.id);card.lvl=ok?Math.min(card.lvl+1,STEPS.length-1):0;card.due=Date.now()+STEPS[card.lvl]*864e5;save();if(!ok)toast('لا بأس، سنعود إليها غدًا 🌱');showRev();renderHome()}
+
+/* ================= settings ================= */
+async function renderStorage(){const B=$('storeBox');try{const persisted=await navigator.storage?.persisted?.();const est=await navigator.storage?.estimate?.();const mb=x=>(x/1048576).toFixed(x>1048576*100?0:1);
+  B.innerHTML=`<div class="row"><div class="grow"><b>المساحة</b><div class="muted">${est?`مستخدم ${mb(est.usage)} ميجا من ${est.quota>1073741824?(est.quota/1073741824).toFixed(1)+' جيجا':mb(est.quota)+' ميجا'} متاحة`:'غير معروفة'} · ${S.books.length} كتب · ${S.cards.length} بطاقة</div><div class="muted">${persisted?'🔒 التخزين دائم: لن يمسحه المتصفح':'⚠️ التخزين غير محمي بعد'}</div></div>${persisted?'':'<button class="soft" onclick="askPersist()">احمِ بياناتي</button>'}</div>`}catch(e){B.innerHTML='<span class="muted">لا يمكن حساب المساحة في هذا المتصفح.</span>'}}
+async function askPersist(){try{const ok=await navigator.storage.persist();toast(ok?'تم ✓ بياناتك محمية':'المتصفح لم يوافق بعد — أضف التطبيق للشاشة الرئيسية ثم جرّب');}catch(e){toast('غير مدعوم هنا')}renderStorage()}
+function renderSettings(){renderStorage();$('keyIn').value=S.settings.key;$('modelIn').value=S.settings.model;$('nameIn').value=S.settings.name;$('styleChips').innerHTML=[['fusha','فصحى مبسطة'],['mix','فصحى + لمسة عامية'],['ammiya','عامية مصرية']].map(([k,l])=>`<span class="chip ${S.settings.style===k?'on':''}" onclick="S.settings.style='${k}';renderSettings()">${l}</span>`).join('')}
+function saveSettings(){S.settings.key=$('keyIn').value.trim();S.settings.model=$('modelIn').value.trim()||'gemini-flash-latest';S.settings.name=$('nameIn').value.trim()||'أنيس';save();toast('حُفظت الإعدادات ✓')}
+async function testKey(){saveSettings();$('testOut').textContent='جارٍ الاختبار…';try{const o=await gemini([{role:'user',parts:[{text:'قل تحية قصيرة جدًا للقارئ في جملة واحدة.'}]}]);$('testOut').textContent='✓ يعمل: '+o}catch(e){$('testOut').textContent=e.message==='NOKEY'?'أدخل المفتاح أولًا':'✗ '+e.message}}
+async function exportData(){const data=JSON.stringify({cards:S.cards,notes:S.books.map(b=>({title:b.title,notes:b.notes})),sessions:S.sessions},null,1);try{await navigator.clipboard.writeText(data);toast('نُسخت البيانات ✓ الصقها في ملف أو رسالة لنفسك')}catch(e){openSheet(`<b>انسخ هذا النص واحفظه:</b><textarea style="min-height:260px;margin-top:10px;direction:ltr">${esc(data)}</textarea>`)}}
+
+/* ================= boot ================= */
+ensureSample().then(renderHome);
+if(location.protocol==='content:'&&!window.Capacitor)$('urlWarn').style.display='block';
+try{navigator.storage?.persist?.()}catch(e){}
+/* Android back button: never leave the app by accident */
+history.replaceState({s:'home'},'');history.pushState({s:'guard'},'');
+window.addEventListener('popstate',()=>{history.pushState({s:'guard'},'');
+  if($('sheetBg').classList.contains('on'))return closeSheet();
+  if(selMode)return toggleSelect();
+  if($('reader').classList.contains('on'))return askEnd();
+  if($('debrief').classList.contains('on'))return;
+  if(!$('home').classList.contains('on'))return go('home');
+  toast('أنت في المكتبة 📚');});
+</script>
+</body>
+</html>

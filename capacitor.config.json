@@ -1,0 +1,7 @@
+{
+  "appId": "com.gamyahmed.anis",
+  "appName": "أنيس",
+  "webDir": "www",
+  "android": { "allowMixedContent": false },
+  "server": { "androidScheme": "https" }
+}
