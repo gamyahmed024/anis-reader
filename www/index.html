@@ -264,6 +264,9 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
   <div class="row wrap" style="margin-top:8px;gap:8px"><button class="ghost" onclick="speak('أهلًا بك، أنا أنيس. سأقرأ لك الشروح بهذا الصوت.',this)">🔊 جرّب الصوت</button><button class="ghost" onclick="openVoiceInstall()">⬇️ تحميل الصوت العربي</button><button class="ghost" onclick="openVoiceSettings()">⚙️ إعدادات الصوت في الهاتف</button></div>
   <div class="muted" id="voiceStatus" style="margin-top:6px"></div>
   <div class="muted" style="margin-top:12px">صوت الذكاء الاصطناعي:</div><div id="gvChips"></div>
+  <h2>سرعة أنيس</h2>
+  <div id="speedChips"></div>
+  <div class="muted" style="margin-top:6px;line-height:1.7">⚡ سريع: يستخدم نموذجًا خفيفًا للشرح والأسئلة والمحاورة (أسرع بكثير وحدوده أوسع). الإعراب يبقى دائمًا بالنموذج الأقوى للدقة.</div>
   <h2>اسم رفيقك</h2>
   <input id="nameIn" placeholder="أنيس">
   <div class="row" style="margin-top:18px">
@@ -425,25 +428,34 @@ function persona(){
 const FALLBACKS=['gemini-flash-latest','gemini-3.6-flash','gemini-3.1-flash-lite','gemini-2.5-flash'];
 async function gemini(contents,opts={}){
   const first=(S.settings.model||'gemini-flash-latest').trim();
-  const list=[first,first,...FALLBACKS.filter(m=>m!==first)];
+  let list=[first,first,...FALLBACKS.filter(m=>m!==first)];
+  if(opts.fast&&S.settings.speed!=='deep')list=['gemini-3.1-flash-lite',...list.filter(m=>m!=='gemini-3.1-flash-lite')];
   let lastErr;
   for(let i=0;i<list.length;i++){
     try{ return await geminiOnce(list[i],contents,opts); }
-    catch(e){ lastErr=e; if(!e.busy) throw e; if(i===0) await new Promise(r=>setTimeout(r,1500)); }
+    catch(e){ lastErr=e; if(!e.busy) throw e; if(i===0&&list[0]===list[1]) await new Promise(r=>setTimeout(r,1500)); }
   }
   throw new Error('خوادم Gemini مزدحمة الآن على كل النماذج، جرّب بعد دقيقة.');
 }
 const noThink=new Set();
-async function geminiOnce(model,contents,{json=false,system}={}){
+async function geminiOnce(model,contents,{json=false,system,onText}={}){
   const key=S.settings.key; if(!key) throw new Error('NOKEY');
   const body={systemInstruction:{parts:[{text:system||persona()}]},contents,generationConfig:{}};
   if(json) body.generationConfig.responseMimeType='application/json';
-  if(/gemini-3|latest/.test(model)&&!noThink.has(model)) body.generationConfig.thinkingConfig={thinkingLevel:'low'};
+  if(/gemini-3|latest/.test(model)&&!/lite/.test(model)&&!noThink.has(model)) body.generationConfig.thinkingConfig={thinkingLevel:'low'};
   if(window.onTry) try{onTry(model)}catch(e){}
   const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),45000);
   let r;
-  try{ r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body),signal:ctl.signal}); }
+  try{ r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:${onText?'streamGenerateContent?alt=sse':'generateContent'}`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body),signal:ctl.signal}); }
   catch(e){ clearTimeout(to); if(e.name==='AbortError'){const er=new Error('تأخر الرد كثيرًا');er.busy=true;throw er} throw new Error('لا يمكن الاتصال بـ Gemini. تأكد من اتصالك بالإنترنت ثم أعد المحاولة.'); }
+  if(onText&&r.ok&&r.body&&r.body.getReader){
+    const rd=r.body.getReader(),dec=new TextDecoder();let buf='',full='',raw='';
+    try{for(;;){const {value,done}=await rd.read();if(done)break;const chunk=dec.decode(value,{stream:true});raw+=chunk;buf+=chunk;let i;while((i=buf.indexOf('\n'))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!line.startsWith('data:'))continue;
+      try{const d=JSON.parse(line.slice(5));const t=(d.candidates?.[0]?.content?.parts||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join('');if(t){full+=t;try{onText(full)}catch(_){}}}catch(_){}}}}
+    catch(e){} clearTimeout(to);
+    if(!full.trim()){try{const j=JSON.parse(raw);const arr=Array.isArray(j)?j:[j];full=arr.map(d=>(d.candidates?.[0]?.content?.parts||[]).filter(p=>p.text&&!p.thought).map(p=>p.text).join('')).join('');if(full)onText(full)}catch(_){}}
+    if(!full.trim())throw new Error('لم يصل رد');return full.trim();
+  }
   const d=await r.json().catch(()=>({})); clearTimeout(to);
   if(r.status===400&&/thinking/i.test(d?.error?.message||'')&&!noThink.has(model)){noThink.add(model);return geminiOnce(model,contents,{json,system});}
   if(!r.ok){ const er=new Error(d?.error?.message||('HTTP '+r.status)); er.busy=[429,500,503,404].includes(r.status)||/demand|overloaded|unavailable/i.test(er.message); throw er; }
@@ -639,8 +651,8 @@ function toggleSelect(){selMode=!selMode;showChrome();$('selLayer').classList.to
   L.addEventListener('pointerdown',e=>{L.setPointerCapture(e.pointerId);const r=L.getBoundingClientRect();p0={x:e.clientX-r.left,y:e.clientY-r.top};Object.assign(B.style,{display:'block',left:p0.x+'px',top:p0.y+'px',width:0,height:0})});
   L.addEventListener('pointermove',e=>{if(!p0)return;const r=L.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;Object.assign(B.style,{left:Math.min(x,p0.x)+'px',top:Math.min(y,p0.y)+'px',width:Math.abs(x-p0.x)+'px',height:Math.abs(y-p0.y)+'px'})});
   L.addEventListener('pointerup',()=>{if(!p0)return;p0=null;const w=B.offsetWidth,h=B.offsetHeight;if(w<20||h<12){B.style.display='none';return}
-    const cv=$('pdfCanvas'),k=cv.width/cv.getBoundingClientRect().width;const c=document.createElement('canvas');const sx=B.offsetLeft*k,sy=B.offsetTop*k,sw=w*k,sh=h*k;const s=Math.min(1,1400/sw);c.width=sw*s;c.height=sh*s;c.getContext('2d').drawImage(cv,sx,sy,sw,sh,0,0,c.width,c.height);
-    sel={kind:'img',data:c.toDataURL('image/jpeg',.88)};$('actbar').classList.add('on')});
+    const cv=$('pdfCanvas'),k=cv.width/cv.getBoundingClientRect().width;const c=document.createElement('canvas');const sx=B.offsetLeft*k,sy=B.offsetTop*k,sw=w*k,sh=h*k;const s=Math.min(1,1000/sw);c.width=sw*s;c.height=sh*s;c.getContext('2d').drawImage(cv,sx,sy,sw,sh,0,0,c.width,c.height);
+    sel={kind:'img',data:c.toDataURL('image/jpeg',.8)};$('actbar').classList.add('on')});
 })();
 document.addEventListener('selectionchange',()=>{if(!R||R.book.type!=='text'||!$('reader').classList.contains('on'))return;const t=String(getSelection()).trim();if(t.length>1&&$('textPage').contains(getSelection().anchorNode)){sel={kind:'text',data:t};$('actbar').classList.add('on')}});
 function clearSel(){sel=null;$('actbar').classList.remove('on');$('selBox').style.display='none';try{getSelection().removeAllRanges()}catch(e){}}
@@ -653,9 +665,12 @@ async function aiAct(kind){
     card:'حوّل فكرة هذا المقطع إلى بطاقة استذكار واحدة. أعد JSON فقط: {"q":"سؤال يختبر الفهم لا الحفظ","a":"إجابة موجزة"}',
     tarkib:'أريد أن أتملّك التركيب/العبارة الأجمل في هذا المقطع وأستعملها في كلامي. اختر أبلغ عبارة فيه (أو العبارة المحددة نفسها إن كانت قصيرة). أعد JSON فقط: {"q":"موقف أو معنى بصيغة سؤال: كيف تعبّر عن كذا بأسلوب فصيح؟","a":"العبارة كما هي في النص","use":"جملة جديدة من إنشائك تستعمل التركيب نفسه في سياق مختلف"}'}[kind];
   const thumb=cur.kind==='img'?`<img class="thumb" src="${cur.data}">`:`<div class="muted" style="margin-bottom:8px;font-family:Amiri;font-size:18px">«${esc(cur.data.slice(0,240))}»</div>`;
-  openSheet(`<div class="hero">${anisSVG()}<div class="grow muted dots">${name()} يقرأ المقطع</div></div><div style="margin-top:10px">${thumb}</div>`); mood('thinking');
+  const isJson=kind==='card'||kind==='tarkib';
+  if(isJson)openSheet(`<div class="hero">${anisSVG()}<div class="grow muted dots">${name()} يقرأ المقطع</div></div><div style="margin-top:10px">${thumb}</div>`);
+  else openSheet(`<div class="hero">${anisSVG()}<b>${name()}</b></div><div style="margin-top:10px">${thumb}</div><div class="answer" id="ansTxt"><span class="dots muted">يقرأ المقطع</span></div><div class="row wrap" style="margin-top:14px;gap:8px"><button class="grow" onclick="closeSheet()">فهمت، أكمل 📖</button></div>`);
+  mood('thinking');
   try{
-    const out=await gemini([{role:'user',parts:selParts(P)}],{json:kind==='card'}); mood();
+    const out=await gemini([{role:'user',parts:selParts(P)}],{json:isJson,fast:kind!=='irab'&&!isJson,onText:isJson?null:(t=>{const el=$('ansTxt');if(el)el.innerHTML=fmtAns(t)})}); mood();
     R.selections.push({kind,text:cur.kind==='text'?cur.data:'(مقطع مصوّر)',out:out.slice(0,600)});
     if(kind!=='card'&&kind!=='tarkib')R.lastJ=addJournal({kind,q:cur.kind==='text'?cur.data:'',img:cur.kind==='img'?cur.data:null,a:out});
     if(kind==='card'||kind==='tarkib'){const c=pj(out);const a=kind==='tarkib'&&c.use?`${c.a}\n\nمثال لاستعماله: ${c.use}`:c.a;addCard(c.q,a,null,kind==='tarkib'?'tarkib':'fahm');openSheet(`<b>${kind==='tarkib'?'✨ حُفظ التركيب':'🗂️ حُفظت البطاقة'}</b><div class="card" style="margin:10px 0"><div>${esc(c.q)}</div><div class="muted answer" style="margin-top:6px">${esc(a)}</div></div><button style="width:100%" onclick="closeSheet()">أكمل القراءة</button>`)}
@@ -664,9 +679,9 @@ async function aiAct(kind){
   }catch(e){closeSheet();aiErr(e)}
   clearSel(); if(selMode)toggleSelect();
 }
-async function simpler(){if(!R.lastQ)return;mood('thinking');$('sheet').querySelector('.answer').innerHTML='<span class="dots">لحظة</span>';try{const out=await gemini([{role:'user',parts:R.lastQ.parts},{role:'model',parts:[{text:R.lastQ.out}]},{role:'user',parts:[{text:'لم تتضح لي بعد. بسّطها أكثر جدًا كأني طالب في الإعدادية، بتشبيه واحد.'}]}]);R.lastQ.out=out;mood();{const je=(S.journal||[]).find(x=>x.id===R.lastJ);if(je){je.a+='\n\n— بتبسيط أكثر:\n'+out;save()}}$('sheet').querySelector('.answer').innerHTML=fmtAns(out);autoSpeak('ansTxt')}catch(e){aiErr(e)}}
+async function simpler(){if(!R.lastQ)return;mood('thinking');$('sheet').querySelector('.answer').innerHTML='<span class="dots">لحظة</span>';try{const out=await gemini([{role:'user',parts:R.lastQ.parts},{role:'model',parts:[{text:R.lastQ.out}]},{role:'user',parts:[{text:'لم تتضح لي بعد. بسّطها أكثر جدًا كأني طالب في الإعدادية، بتشبيه واحد.'}]}],{fast:true,onText:t=>{const el=$('sheet').querySelector('.answer');if(el)el.innerHTML=fmtAns(t)}});R.lastQ.out=out;mood();{const je=(S.journal||[]).find(x=>x.id===R.lastJ);if(je){je.a+='\n\n— بتبسيط أكثر:\n'+out;save()}}$('sheet').querySelector('.answer').innerHTML=fmtAns(out);autoSpeak('ansTxt')}catch(e){aiErr(e)}}
 function openAsk(){openSheet(`<div class="hero">${anisSVG()}<div class="bubble grow">نعم؟ أنا معك. اسألني عن هذه الصفحة 🙂</div></div><textarea id="askIn" style="margin-top:12px" placeholder="اكتب سؤالك أو اضغط 🎙️ وتكلّم…"></textarea><div class="row" style="margin-top:10px">${micOK()?`<button class="ghost" onclick="dictate('askIn',this)">🎙️</button>`:''}<button class="grow" onclick="askPage()">اسأل</button><button class="ghost" onclick="closeSheet()">عودة</button></div><div id="askOut" class="answer" style="margin-top:12px"></div><div id="askSpk" style="margin-top:8px"></div>`)}
-async function askPage(){const q=$('askIn').value.trim();if(!q)return;const b=R.book;const parts=[{text:`سؤالي عن الصفحة التي أقرؤها الآن (أجب باختصار ثم أعدني للقراءة بلطف): ${q}`}];if(b.type==='pdf')parts.push(imgPart(pageImage()));else parts.push({text:'نص الصفحة:\n'+R.pageTexts[b.pos]});$('askOut').innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');try{const out=await gemini([{role:'user',parts}]);mood();$('askOut').innerHTML=fmtAns(out);$('askSpk').innerHTML=speakBtnHTML('askOut');autoSpeak('askOut');R.selections.push({kind:'ask',text:q,out:out.slice(0,600)});addJournal({kind:'ask',q,a:out})}catch(e){$('askOut').innerHTML='';aiErr(e)}}
+async function askPage(){const q=$('askIn').value.trim();if(!q)return;const b=R.book;const parts=[{text:`سؤالي عن الصفحة التي أقرؤها الآن (أجب باختصار ثم أعدني للقراءة بلطف): ${q}`}];if(b.type==='pdf')parts.push(imgPart(pageImage(900)));else parts.push({text:'نص الصفحة:\n'+R.pageTexts[b.pos]});$('askOut').innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');try{const out=await gemini([{role:'user',parts}],{fast:true,onText:t=>{$('askOut').innerHTML=fmtAns(t)}});mood();$('askOut').innerHTML=fmtAns(out);$('askSpk').innerHTML=speakBtnHTML('askOut');autoSpeak('askOut');R.selections.push({kind:'ask',text:q,out:out.slice(0,600)});addJournal({kind:'ask',q,a:out})}catch(e){$('askOut').innerHTML='';aiErr(e)}}
 
 /* ================= debrief (Feynman) ================= */
 function contextParts(){const parts=[];const b=R.book;if(b.type==='pdf'){if(!R.pageImgs[b.pos])R.pageImgs[b.pos]=pageImage(900);Object.values(R.pageImgs).slice(-4).forEach(d=>parts.push(imgPart(d)))}else{const t=[...R.pagesSeen].sort((a,b)=>a-b).map(i=>R.pageTexts[i]).filter(Boolean).join('\n\n');parts.push({text:'ما قرأه في هذه الجلسة:\n'+t.slice(-9000)})}
@@ -690,7 +705,7 @@ async function sendChat(){const t=$('chatIn').value.trim();if(!t)return;$('chatI
   if(!S.settings.key){const fb=['جميل! وما المثال الذي يوضح هذه الفكرة؟','وهل تتفق مع الكاتب؟ لماذا؟','رائع. لو أردت أن تطبّق هذه الفكرة غدًا، ماذا ستفعل؟'][Math.min(turns-1,2)];addMsg('a',fb);R.chat.push({role:'model',parts:[{text:fb}]});return}
   const w=addMsg('a','');w.innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');
   try{const contents=[{role:'user',parts:[...contextParts(),{text:'(هذا ما قرأتُه. ابدأ المحاورة.)'}]},{role:'model',parts:[{text:'حسنًا.'}]},...R.chat];
-    let out=await gemini(contents,{system:debSystem()+(turns>=4?'\nهذه آخر جولة: اختم بتشجيع واقترح عليه الضغط على «لخّص وأنشئ البطاقات».':'')});mood();w.innerHTML=fmtAns(out);R.chat.push({role:'model',parts:[{text:out}]});if(S.settings.autoRead)speak(w.innerText,null)}
+    let out=await gemini(contents,{fast:true,onText:t=>{w.innerHTML=fmtAns(t);w.scrollIntoView({block:'end'})},system:debSystem()+(turns>=4?'\nهذه آخر جولة: اختم بتشجيع واقترح عليه الضغط على «لخّص وأنشئ البطاقات».':'')});mood();w.innerHTML=fmtAns(out);R.chat.push({role:'model',parts:[{text:out}]});if(S.settings.autoRead)speak(w.innerText,null)}
   catch(e){w.remove();R.chat.pop();aiErr(e)}}
 async function finishDebrief(){
   const b=R.book;const userTalk=R.chat.filter(m=>m.role==='user').map(m=>m.parts[0].text).join('\n');
@@ -785,7 +800,7 @@ function grade(ok){const c=revQ.shift();const card=S.cards.find(x=>x.id===c.id);
 async function renderStorage(){const B=$('storeBox');try{const persisted=await navigator.storage?.persisted?.();const est=await navigator.storage?.estimate?.();const mb=x=>(x/1048576).toFixed(x>1048576*100?0:1);
   B.innerHTML=`<div class="row"><div class="grow"><b>المساحة</b><div class="muted">${est?`مستخدم ${mb(est.usage)} ميجا من ${est.quota>1073741824?(est.quota/1073741824).toFixed(1)+' جيجا':mb(est.quota)+' ميجا'} متاحة`:'غير معروفة'} · ${S.books.length} كتب · ${S.cards.length} بطاقة</div><div class="muted">${persisted?'🔒 التخزين دائم: لن يمسحه المتصفح':'⚠️ التخزين غير محمي بعد'}</div></div>${persisted?'':'<button class="soft" onclick="askPersist()">احمِ بياناتي</button>'}</div>`}catch(e){B.innerHTML='<span class="muted">لا يمكن حساب المساحة في هذا المتصفح.</span>'}}
 async function askPersist(){try{const ok=await navigator.storage.persist();toast(ok?'تم ✓ بياناتك محمية':'المتصفح لم يوافق بعد — أضف التطبيق للشاشة الرئيسية ثم جرّب');}catch(e){toast('غير مدعوم هنا')}renderStorage()}
-function renderSettings(){renderStorage();$('gvChips').innerHTML=[['Charon','صوت رجل'],['Kore','صوت امرأة']].map(([v,l])=>`<span class="chip ${gVoice()===v?'on':''}" onclick="S.settings.gvoice='${v}';save();renderSettings()">${l}</span>`).join('');checkArabicVoice();$('rateIn').value=S.settings.rate||0.95;$('voiceChips').innerHTML=[[false,'أقرأ عند الضغط فقط'],[true,'اقرأ الشروح تلقائيًا']].map(([k,l])=>`<span class="chip ${!!S.settings.autoRead===k?'on':''}" onclick="S.settings.autoRead=${k};save();renderSettings()">${l}</span>`).join('');$('keyIn').value=S.settings.key;$('modelIn').value=S.settings.model;$('nameIn').value=S.settings.name;$('styleChips').innerHTML=[['fusha','فصحى مبسطة'],['mix','فصحى + لمسة عامية'],['ammiya','عامية مصرية']].map(([k,l])=>`<span class="chip ${S.settings.style===k?'on':''}" onclick="S.settings.style='${k}';renderSettings()">${l}</span>`).join('')}
+function renderSettings(){renderStorage();$('speedChips').innerHTML=[['fast','⚡ سريع'],['deep','🧠 أعمق (أبطأ)']].map(([k,l])=>`<span class="chip ${(S.settings.speed||'fast')===k?'on':''}" onclick="S.settings.speed='${k}';save();renderSettings()">${l}</span>`).join('');$('gvChips').innerHTML=[['Charon','صوت رجل'],['Kore','صوت امرأة']].map(([v,l])=>`<span class="chip ${gVoice()===v?'on':''}" onclick="S.settings.gvoice='${v}';save();renderSettings()">${l}</span>`).join('');checkArabicVoice();$('rateIn').value=S.settings.rate||0.95;$('voiceChips').innerHTML=[[false,'أقرأ عند الضغط فقط'],[true,'اقرأ الشروح تلقائيًا']].map(([k,l])=>`<span class="chip ${!!S.settings.autoRead===k?'on':''}" onclick="S.settings.autoRead=${k};save();renderSettings()">${l}</span>`).join('');$('keyIn').value=S.settings.key;$('modelIn').value=S.settings.model;$('nameIn').value=S.settings.name;$('styleChips').innerHTML=[['fusha','فصحى مبسطة'],['mix','فصحى + لمسة عامية'],['ammiya','عامية مصرية']].map(([k,l])=>`<span class="chip ${S.settings.style===k?'on':''}" onclick="S.settings.style='${k}';renderSettings()">${l}</span>`).join('')}
 function saveSettings(){S.settings.key=$('keyIn').value.trim();S.settings.model=$('modelIn').value.trim()||'gemini-flash-latest';S.settings.name=$('nameIn').value.trim()||'أنيس';save();toast('حُفظت الإعدادات ✓')}
 async function testKey(){saveSettings();$('testOut').textContent='جارٍ الاختبار…';window.onTry=m=>$('testOut').textContent='جارٍ الاختبار مع '+m+' …';try{const o=await gemini([{role:'user',parts:[{text:'قل تحية قصيرة جدًا للقارئ في جملة واحدة.'}]}]);$('testOut').textContent='✓ يعمل: '+o}catch(e){$('testOut').textContent=e.message==='NOKEY'?'أدخل المفتاح أولًا':'✗ '+e.message}window.onTry=null}
 async function exportData(){const data=JSON.stringify({journal:S.journal,cards:S.cards,notes:S.books.map(b=>({title:b.title,notes:b.notes})),sessions:S.sessions},null,1);try{await navigator.clipboard.writeText(data);toast('نُسخت البيانات ✓ الصقها في ملف أو رسالة لنفسك')}catch(e){openSheet(`<b>انسخ هذا النص واحفظه:</b><textarea style="min-height:260px;margin-top:10px;direction:ltr">${esc(data)}</textarea>`)}}
