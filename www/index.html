@@ -58,7 +58,7 @@ body{overflow-x:hidden}
 .hero{display:flex;gap:14px;align-items:center}
 .bubble{background:var(--card);border:1px solid var(--line);border-radius:18px 18px 18px 4px;padding:12px 14px;line-height:1.7;box-shadow:var(--shadow)}
 .tabbar{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-around;background:var(--paper);border-top:1px solid var(--line);padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:20}
-.tabbar button{background:none;color:var(--muted);padding:6px 10px;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.tabbar button{background:none;color:var(--muted);padding:6px 6px;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px}
 .tabbar button.on{color:var(--accent)}
 .tabbar span{font-size:20px}
 .sheet-bg{position:fixed;inset:0;background:rgba(20,12,6,.45);display:none;z-index:50;align-items:flex-end;justify-content:center}
@@ -234,6 +234,14 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
 </section>
 
 <!-- ========== SETTINGS ========== -->
+<section id="journal" class="screen">
+  <h1>دفتري 📒</h1>
+  <div class="muted">كل ما تناقشتَ فيه مع أنيس: الشروح، أسئلتك، والمحاورات بعد الجلسات.</div>
+  <input id="jSearch" placeholder="🔍 ابحث في دفترك…" style="margin-top:12px" oninput="renderJournal()">
+  <div id="jBooks" style="margin-top:8px"></div>
+  <div id="jList" style="margin-top:10px"></div>
+</section>
+
 <section id="settings" class="screen">
   <h1>الإعدادات</h1>
   <h2>مفتاح Gemini API</h2>
@@ -264,6 +272,7 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
 <nav class="tabbar" id="tabbar">
   <button data-go="home" class="on" onclick="go('home')"><span>📚</span>مكتبتي</button>
   <button data-go="review" onclick="go('review')"><span>🗂️</span>مراجعة</button>
+  <button data-go="journal" onclick="go('journal')"><span>📒</span>دفتري</button>
   <button data-go="settings" onclick="go('settings')"><span>⚙️</span>إعدادات</button>
 </nav>
 
@@ -361,7 +370,7 @@ const micOK=()=>!!(STTn||window.SpeechRecognition||window.webkitSpeechRecognitio
 
 /* ================= storage ================= */
 const LS='anis_v1';
-let S={books:[],cards:[],sessions:[],settings:{key:'',model:'gemini-flash-latest',style:'fusha',name:'أنيس'}};
+let S={books:[],cards:[],sessions:[],journal:[],settings:{key:'',model:'gemini-flash-latest',style:'fusha',name:'أنيس'}};
 try{const raw=localStorage.getItem(LS); if(raw){const o=JSON.parse(raw); S={...S,...o,settings:{...S.settings,...(o.settings||{})}}}}catch(e){}
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){toast('تعذّر الحفظ على الجهاز')}}
 const memBlobs={};
@@ -391,7 +400,7 @@ function go(s){
   document.querySelectorAll('.screen').forEach(x=>x.classList.remove('on'));$(s).classList.add('on');
   $('tabbar').style.display=(s==='reader'||s==='debrief')?'none':'flex';
   document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.go===s));
-  if(s==='home')renderHome(); if(s==='review')renderReview(); if(s==='settings')renderSettings();
+  if(s==='home')renderHome(); if(s==='review')renderReview(); if(s==='journal')renderJournal(); if(s==='settings')renderSettings();
   window.scrollTo(0,0);
 }
 function openSheet(html){$('sheet').innerHTML=html;$('sheetBg').classList.add('on')}
@@ -494,23 +503,27 @@ function folderMenu(id){const f=S.folders.find(x=>x.id===id);openSheet(`<h2 styl
 function delFolder(id){S.folders=S.folders.filter(f=>f.id!==id);S.books.forEach(b=>{if(b.folder===id)b.folder=null});curFolder=null;save();closeSheet();renderHome();toast('حُذف المجلد، وعادت كتبه إلى المكتبة')}
 function moveBook(bid,fid){const b=S.books.find(x=>x.id===bid);b.folder=fid||null;save();closeSheet();renderHome();toast(fid?('نُقل إلى «'+folderName(fid)+'»'):'نُقل إلى المكتبة')}
 function toggleCards(id){const b=S.books.find(x=>x.id===id);b.cardsOn=b.cardsOn===false;save();bookMenu(id)}
-function bookMenu(id){const b=S.books.find(x=>x.id===id);const notes=(b.notes||[]).slice(-5).reverse();const on=b.cardsOn!==false;openSheet(`<h2 style="margin-top:0">${esc(b.title)}</h2><div class="card row" style="margin-bottom:12px"><div class="grow"><b>بطاقات المراجعة بعد الجلسة</b><div class="muted">${on?'مفعّلة: 2–3 بطاقات فقط لكل جلسة':'متوقفة: ملخص فقط (مناسب للروايات وقراءة المتعة)'}</div></div><button class="${on?'':'ghost'}" onclick="toggleCards('${id}')">${on?'تشغيل ✓':'إيقاف'}</button></div>${notes.length?'<b>ملخصات جلساتك:</b>'+notes.map(n=>`<div class="card" style="margin:8px 0"><div class="muted">${n.date} · صفحة ${n.page}</div><div class="answer">${fmtAns(n.summary)}</div></div>`).join(''):'<div class="muted">لا ملخصات بعد.</div>'}<h2>المجلد</h2><div>${[[null,'📚 بدون مجلد'],...(S.folders||[]).map(f=>[f.id,'📁 '+f.name])].map(([fid,l])=>`<span class="chip ${(b.folder||null)===fid?'on':''}" onclick="moveBook('${id}',${fid?`'${fid}'`:'null'})">${esc(l)}</span>`).join('')}<span class="chip" onclick="newFolder('${id}')">＋ مجلد جديد</span></div><div class="row" style="margin-top:14px"><button class="ghost grow" onclick="closeSheet()">إغلاق</button><button class="ghost" style="color:#b44" onclick="delBook('${id}')">حذف الكتاب</button></div>`)}
+function bookMenu(id){const b=S.books.find(x=>x.id===id);const notes=(b.notes||[]).slice(-5).reverse();const on=b.cardsOn!==false;openSheet(`<h2 style="margin-top:0">${esc(b.title)}</h2><div class="card row" style="margin-bottom:12px"><div class="grow"><b>بطاقات المراجعة بعد الجلسة</b><div class="muted">${on?'مفعّلة: 2–3 بطاقات فقط لكل جلسة':'متوقفة: ملخص فقط (مناسب للروايات وقراءة المتعة)'}</div></div><button class="${on?'':'ghost'}" onclick="toggleCards('${id}')">${on?'تشغيل ✓':'إيقاف'}</button></div>${notes.length?'<b>ملخصات جلساتك:</b>'+notes.map(n=>`<div class="card" style="margin:8px 0"><div class="muted">${n.date} · صفحة ${n.page}</div><div class="answer">${fmtAns(n.summary)}</div></div>`).join(''):'<div class="muted">لا ملخصات بعد.</div>'}${(S.journal||[]).some(e=>e.bookId===id)?`<button class="soft" style="width:100%;margin-bottom:6px" onclick="closeSheet();jBook='${id}';go('journal')">📒 دفتر هذا الكتاب (${S.journal.filter(e=>e.bookId===id).length})</button>`:''}<h2>المجلد</h2><div>${[[null,'📚 بدون مجلد'],...(S.folders||[]).map(f=>[f.id,'📁 '+f.name])].map(([fid,l])=>`<span class="chip ${(b.folder||null)===fid?'on':''}" onclick="moveBook('${id}',${fid?`'${fid}'`:'null'})">${esc(l)}</span>`).join('')}<span class="chip" onclick="newFolder('${id}')">＋ مجلد جديد</span></div><div class="row" style="margin-top:14px"><button class="ghost grow" onclick="closeSheet()">إغلاق</button><button class="ghost" style="color:#b44" onclick="delBook('${id}')">حذف الكتاب</button></div>`)}
 function delBook(id){openSheet(`<b>حذف الكتاب؟</b><p class="muted">ستبقى بطاقاتك محفوظة.</p><div class="row"><button class="grow" style="background:#b44" onclick="reallyDel('${id}')">احذف</button><button class="ghost grow" onclick="closeSheet()">تراجع</button></div>`)}
 function reallyDel(id){S.books=S.books.filter(b=>b.id!==id);delBlob(id);save();closeSheet();renderHome()}
 
 /* ================= session setup (ritual) ================= */
-let setup={min:25,sound:'rain'};
+let setup={min:25,sound:'rain',custom:false};
 function setupSession(id){
   const b=S.books.find(x=>x.id===id); setup.book=b;
   const lastNote=(b.notes||[]).slice(-1)[0];
   const welcome= lastNote? `أهلًا بعودتك 🌿 توقفنا عند صفحة ${lastNote.page}، وكانت خلاصة ما فهمتَه:\n«${lastNote.summary.split('\n')[0].slice(0,220)}»` : `جميل! أول جلسة لنا مع «${b.title}». سأقرأ معك بهدوء، ولن أقاطعك إلا إذا ناديتني.`;
   openSheet(`<div class="hero">${anisSVG()}<div class="bubble grow" style="white-space:pre-wrap">${esc(welcome)}</div></div>
   <h2>ماذا تريد أن تخرج به اليوم؟</h2><input id="intent" placeholder="مثلًا: أفهم الفكرة الأساسية للفصل الثاني">
-  <h2>مدة الجلسة</h2><div id="minChips">${[15,25,45,60].map(m=>`<span class="chip ${m===setup.min?'on':''}" onclick="pick('min',${m},this)">${m} د</span>`).join('')}</div>
+  <h2>مدة الجلسة</h2><div id="minChips">${[15,25,45,60].map(m=>`<span class="chip ${m===setup.min&&!setup.custom?'on':''}" onclick="setup.custom=false;$('customMin').style.display='none';pick('min',${m},this)">${m} د</span>`).join('')}<span class="chip ${setup.custom?'on':''}" onclick="pickCustom(this)">⏱️ مخصص${setup.custom?` (${fmtMin(setup.min)})`:''}</span></div>
+  <div id="customMin" class="row" style="display:${setup.custom?'flex':'none'};margin-top:8px;gap:8px"><input id="cmH" type="number" inputmode="numeric" min="0" max="12" placeholder="ساعات" style="text-align:center" value="${setup.custom?Math.floor(setup.min/60)||'':''}" oninput="readCustom()"><span class="muted">:</span><input id="cmM" type="number" inputmode="numeric" min="0" max="59" placeholder="دقائق" style="text-align:center" value="${setup.custom?setup.min%60||'':''}" oninput="readCustom()"></div>
   <h2>الأجواء</h2><div>${[['rain','🌧️ مطر خفيف'],['brown','🔥 دفء هادئ'],['cafe','☕ همهمة مقهى'],['none','🤫 صمت']].map(([k,l])=>`<span class="chip ${k===setup.sound?'on':''}" onclick="pick('sound','${k}',this)">${l}</span>`).join('')}</div>
   <div class="muted" style="margin-top:14px">ضع الهاتف أمامك، خذ نفسًا عميقًا… وابدأ.</div>
   <button style="width:100%;margin-top:12px;padding:15px;font-size:17px" onclick="startSession()">📖 لنبدأ القراءة معًا</button>`);
 }
+const fmtMin=m=>m>=60?(Math.floor(m/60)+' س'+(m%60?(' و'+m%60+' د'):'')):(m+' د');
+function pickCustom(el){setup.custom=true;el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');$('customMin').style.display='flex';setTimeout(()=>$('cmM').focus(),100)}
+function readCustom(){const h=parseInt($('cmH').value||0,10)||0,m=parseInt($('cmM').value||0,10)||0;const t=Math.min(720,h*60+m);if(t>0){setup.min=t;S.lastCustom=t;save();const c=[...$('minChips').children].pop();c.textContent='⏱️ مخصص ('+fmtMin(t)+')'}}
 function pick(k,v,el){setup[k]=v;el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
 
 /* ================= ambient audio (generated, no files) ================= */
@@ -527,6 +540,7 @@ function chime(){if(!ac())return;const c=AC;[523.25,659.25,783.99].forEach((fr,i
 let R=null; // current session
 let pdfDoc=null,textPages=[];
 async function startSession(){
+  if(setup.custom&&!(setup.min>0))return toast('اكتب مدة الجلسة');
   const b=setup.book; closeSheet();
   R={book:b,intent:($('intent')?.value||'').trim(),start:Date.now(),target:setup.min*60,extra:0,pagesSeen:new Set(),pageImgs:{},pageTexts:{},selections:[],chat:[],away:0,ended:false};
   $('rTitle').textContent=b.title; go('reader'); soundOn=true;$('sndBtn').textContent='🔈'; startAmbient(setup.sound);
@@ -632,15 +646,16 @@ async function aiAct(kind){
   try{
     const out=await gemini([{role:'user',parts:selParts(P)}],{json:kind==='card'}); mood();
     R.selections.push({kind,text:cur.kind==='text'?cur.data:'(مقطع مصوّر)',out:out.slice(0,600)});
+    if(kind!=='card'&&kind!=='tarkib')R.lastJ=addJournal({kind,q:cur.kind==='text'?cur.data:'',img:cur.kind==='img'?cur.data:null,a:out});
     if(kind==='card'||kind==='tarkib'){const c=pj(out);const a=kind==='tarkib'&&c.use?`${c.a}\n\nمثال لاستعماله: ${c.use}`:c.a;addCard(c.q,a,null,kind==='tarkib'?'tarkib':'fahm');openSheet(`<b>${kind==='tarkib'?'✨ حُفظ التركيب':'🗂️ حُفظت البطاقة'}</b><div class="card" style="margin:10px 0"><div>${esc(c.q)}</div><div class="muted answer" style="margin-top:6px">${esc(a)}</div></div><button style="width:100%" onclick="closeSheet()">أكمل القراءة</button>`)}
     else openSheet(`<div class="hero">${anisSVG()}<b>${name()}</b></div><div style="margin-top:10px">${thumb}</div><div class="answer" id="ansTxt">${fmtAns(out)}</div><div class="row wrap" style="margin-top:14px;gap:8px"><button class="grow" onclick="closeSheet()">فهمت، أكمل 📖</button><button class="ghost" onclick="simpler()">بسّطها أكثر</button>${speakBtnHTML('ansTxt')}</div>`);autoSpeak('ansTxt');
     R.lastQ={parts:selParts(P),out};
   }catch(e){closeSheet();aiErr(e)}
   clearSel(); if(selMode)toggleSelect();
 }
-async function simpler(){if(!R.lastQ)return;mood('thinking');$('sheet').querySelector('.answer').innerHTML='<span class="dots">لحظة</span>';try{const out=await gemini([{role:'user',parts:R.lastQ.parts},{role:'model',parts:[{text:R.lastQ.out}]},{role:'user',parts:[{text:'لم تتضح لي بعد. بسّطها أكثر جدًا كأني طالب في الإعدادية، بتشبيه واحد.'}]}]);R.lastQ.out=out;mood();$('sheet').querySelector('.answer').innerHTML=fmtAns(out);autoSpeak('ansTxt')}catch(e){aiErr(e)}}
+async function simpler(){if(!R.lastQ)return;mood('thinking');$('sheet').querySelector('.answer').innerHTML='<span class="dots">لحظة</span>';try{const out=await gemini([{role:'user',parts:R.lastQ.parts},{role:'model',parts:[{text:R.lastQ.out}]},{role:'user',parts:[{text:'لم تتضح لي بعد. بسّطها أكثر جدًا كأني طالب في الإعدادية، بتشبيه واحد.'}]}]);R.lastQ.out=out;mood();{const je=(S.journal||[]).find(x=>x.id===R.lastJ);if(je){je.a+='\n\n— بتبسيط أكثر:\n'+out;save()}}$('sheet').querySelector('.answer').innerHTML=fmtAns(out);autoSpeak('ansTxt')}catch(e){aiErr(e)}}
 function openAsk(){openSheet(`<div class="hero">${anisSVG()}<div class="bubble grow">نعم؟ أنا معك. اسألني عن هذه الصفحة 🙂</div></div><textarea id="askIn" style="margin-top:12px" placeholder="اكتب سؤالك أو اضغط 🎙️ وتكلّم…"></textarea><div class="row" style="margin-top:10px">${micOK()?`<button class="ghost" onclick="dictate('askIn',this)">🎙️</button>`:''}<button class="grow" onclick="askPage()">اسأل</button><button class="ghost" onclick="closeSheet()">عودة</button></div><div id="askOut" class="answer" style="margin-top:12px"></div><div id="askSpk" style="margin-top:8px"></div>`)}
-async function askPage(){const q=$('askIn').value.trim();if(!q)return;const b=R.book;const parts=[{text:`سؤالي عن الصفحة التي أقرؤها الآن (أجب باختصار ثم أعدني للقراءة بلطف): ${q}`}];if(b.type==='pdf')parts.push(imgPart(pageImage()));else parts.push({text:'نص الصفحة:\n'+R.pageTexts[b.pos]});$('askOut').innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');try{const out=await gemini([{role:'user',parts}]);mood();$('askOut').innerHTML=fmtAns(out);$('askSpk').innerHTML=speakBtnHTML('askOut');autoSpeak('askOut');R.selections.push({kind:'ask',text:q,out:out.slice(0,600)})}catch(e){$('askOut').innerHTML='';aiErr(e)}}
+async function askPage(){const q=$('askIn').value.trim();if(!q)return;const b=R.book;const parts=[{text:`سؤالي عن الصفحة التي أقرؤها الآن (أجب باختصار ثم أعدني للقراءة بلطف): ${q}`}];if(b.type==='pdf')parts.push(imgPart(pageImage()));else parts.push({text:'نص الصفحة:\n'+R.pageTexts[b.pos]});$('askOut').innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');try{const out=await gemini([{role:'user',parts}]);mood();$('askOut').innerHTML=fmtAns(out);$('askSpk').innerHTML=speakBtnHTML('askOut');autoSpeak('askOut');R.selections.push({kind:'ask',text:q,out:out.slice(0,600)});addJournal({kind:'ask',q,a:out})}catch(e){$('askOut').innerHTML='';aiErr(e)}}
 
 /* ================= debrief (Feynman) ================= */
 function contextParts(){const parts=[];const b=R.book;if(b.type==='pdf'){if(!R.pageImgs[b.pos])R.pageImgs[b.pos]=pageImage(900);Object.values(R.pageImgs).slice(-4).forEach(d=>parts.push(imgPart(d)))}else{const t=[...R.pagesSeen].sort((a,b)=>a-b).map(i=>R.pageTexts[i]).filter(Boolean).join('\n\n');parts.push({text:'ما قرأه في هذه الجلسة:\n'+t.slice(-9000)})}
@@ -670,12 +685,36 @@ async function finishDebrief(){
   if(!S.settings.key){if(userTalk){b.notes=b.notes||[];b.notes.push({date:today(),page:b.pos+1,summary:userTalk.slice(0,600)});save()}return endAll('حفظتُ كلامك كملخص للجلسة 📝')}
   $('debBtns').innerHTML='<div class="muted dots" style="padding:10px">أكتب الملخص وأصنع البطاقات</div>';mood('thinking');
   try{const out=await gemini([{role:'user',parts:[...contextParts(),{text:`هذه محاورتنا:\n${R.chat.map(m=>(m.role==='user'?'القارئ: ':'أنت: ')+m.parts[0].text).join('\n')}\n\nأعد JSON فقط بهذا الشكل:\n{"summary":"ملخص الجلسة في 3–5 أسطر بصيغة المتكلم عن القارئ (فهمتُ أن…)، مع تصحيح أي فهم خاطئ ظهر","cards":[{"q":"سؤال فهم","a":"إجابة موجزة"}],"next":"جملة تشجيعية واحدة للجلسة القادمة"}\n${b.cardsOn===false?'اجعل cards مصفوفة فارغة [] (البطاقات متوقفة لهذا الكتاب).':'اجعل البطاقات 2 أو 3 فقط، تختبر الفهم لا الحفظ، وركّز على المواضع التي تعثّر فيها القارئ.'}`}]}],{json:true});
-    const j=pj(out);j.cards=Array.isArray(j.cards)?j.cards:[];if(b.cardsOn!==false)j.cards.slice(0,3).forEach(c=>addCard(c.q,c.a,b.title,'fahm'));else j.cards=[];b.notes=b.notes||[];b.notes.push({date:today(),page:b.pos+1,summary:j.summary||''});save();mood('happy');
+    const j=pj(out);j.cards=Array.isArray(j.cards)?j.cards:[];if(b.cardsOn!==false)j.cards.slice(0,3).forEach(c=>addCard(c.q,c.a,b.title,'fahm'));else j.cards=[];b.notes=b.notes||[];b.notes.push({date:today(),page:b.pos+1,summary:j.summary||''});save();saveDebriefJournal(j.summary||'');mood('happy');
     $('chat').insertAdjacentHTML('beforeend',`<div class="card"><b>📝 خلاصة جلستنا</b><div class="answer" style="margin-top:6px">${fmtAns(j.summary)}</div><div class="muted" style="margin-top:10px">${j.cards.length?`🗂️ أضفتُ ${Math.min(3,j.cards.length)} بطاقات للمراجعة. `:''}${esc(j.next||'')}</div></div>`);
     $('debBtns').innerHTML='<button class="grow" onclick="endAll()">إلى المكتبة 📚</button>';$('composer').style.display='none';$('chat').lastElementChild.scrollIntoView({behavior:'smooth'});
   }catch(e){$('debBtns').innerHTML='<button class="soft grow" onclick="finishDebrief()">إعادة المحاولة</button><button class="ghost" onclick="skipDebrief()">تخطَّ</button>';aiErr(e)}}
 function skipDebrief(){endAll()}
-function endAll(msg){$('composer').style.display='flex';$('debBtns').innerHTML='<button class="soft grow" onclick="finishDebrief()">✅ لخّص وأنشئ البطاقات</button><button class="ghost" onclick="skipDebrief()">تخطَّ</button>';R=null;mood();go('home');if(msg)toast(msg)}
+function saveDebriefJournal(summary){if(!R||R.journaled)return;const chat=(R.chat||[]).map(m=>({w:m.role==='user'?'u':'a',t:m.parts[0].text}));if(!chat.some(m=>m.w==='u'))return;R.journaled=true;addJournal({kind:'debrief',chat,summary:summary||''})}
+function endAll(msg){saveDebriefJournal();$('composer').style.display='flex';$('debBtns').innerHTML='<button class="soft grow" onclick="finishDebrief()">✅ لخّص وأنشئ البطاقات</button><button class="ghost" onclick="skipDebrief()">تخطَّ</button>';R=null;mood();go('home');if(msg)toast(msg)}
+
+/* ================= journal (دفتري) ================= */
+const JK={friend:'💬 شرح كصديق',life:'🌱 مثال من الحياة',irab:'✍️ إعراب',ask:'❓ سؤال',debrief:'🗣️ محاورة بعد الجلسة'};
+function addJournal(e){S.journal=S.journal||[];const id=uid();const book=R?.book;const ent={id,kind:e.kind,q:(e.q||'').slice(0,1500),a:e.a||'',chat:e.chat||null,summary:e.summary||'',bookId:book?.id||'',title:book?.title||'',page:book?(book.pos+1):0,date:Date.now(),hasImg:!!e.img};
+  if(e.img)putBlob('j_'+id,e.img);S.journal.push(ent);save();return id}
+let jBook='';
+function renderJournal(){const J=(S.journal||[]);const q=($('jSearch').value||'').trim();
+  const books=[...new Map(J.map(e=>[e.bookId,e.title])).entries()];
+  $('jBooks').innerHTML=books.length>1?[['','الكل'],...books].map(([id,t])=>`<span class="chip ${jBook===id?'on':''}" onclick="jBook='${id}';renderJournal()">${esc(t.length>22?t.slice(0,22)+'…':t)}</span>`).join(''):'';
+  let list=J.filter(e=>(!jBook||e.bookId===jBook)&&(!q||(e.q+' '+e.a+' '+e.summary+' '+(e.chat||[]).map(m=>m.t).join(' ')+' '+e.title).includes(q))).slice().reverse();
+  if(!J.length){$('jList').innerHTML='<div class="card" style="text-align:center"><div style="font-size:40px">📒</div><b>دفترك فارغ بعد</b><div class="muted" style="margin-top:6px;line-height:1.8">كل شرح تطلبه وكل سؤال تسأله ومحاورة بعد الجلسة سيُحفظ هنا تلقائيًا.</div></div>';return}
+  if(!list.length){$('jList').innerHTML='<div class="muted">لا نتائج.</div>';return}
+  let lastDay='';$('jList').innerHTML=list.map(e=>{const d=new Date(e.date);const day=d.toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});const head=day!==lastDay?`<div class="muted" style="margin:16px 4px 8px;font-weight:700">${day}</div>`:'';lastDay=day;
+    const body=e.kind==='debrief'?`${(e.chat||[]).map(m=>`<div class="msg ${m.w==='u'?'u':'a'}" style="max-width:100%;margin:6px 0">${m.w==='u'?esc(m.t):fmtAns(m.t)}</div>`).join('')}${e.summary?`<div style="margin-top:8px"><b>📝 الخلاصة:</b><div class="answer">${fmtAns(e.summary)}</div></div>`:''}`
+      :`${e.hasImg?`<img class="thumb" data-jimg="${e.id}">`:''}${e.q?`<div style="font-family:Amiri;font-size:18px;margin-bottom:8px;color:var(--muted)">«${esc(e.q)}»</div>`:''}<div class="answer" id="ja_${e.id}">${fmtAns(e.a)}</div>`;
+    return head+`<div class="card" style="margin-bottom:10px"><div class="row" style="margin-bottom:8px"><span class="chip" style="margin:0;padding:3px 10px;font-size:12px">${JK[e.kind]||'💬'}</span><span class="muted grow" style="font-size:12px">${esc(e.title)}${e.page?' · ص '+e.page:''} · ${d.toLocaleTimeString('ar-EG',{hour:'numeric',minute:'2-digit'})}</span></div>${body}
+    <div class="row wrap" style="margin-top:10px;gap:6px">${e.kind!=='debrief'?`<button class="ghost" style="padding:7px 10px;font-size:13px" onclick="speak($('ja_${e.id}').innerText,this)">🔊 اقرأها لي</button><button class="ghost" style="padding:7px 10px;font-size:13px" onclick="journalCard('${e.id}')">🗂️ اجعلها بطاقة</button>`:''}<button class="ghost" style="padding:7px 10px;font-size:13px" onclick="copyJournal('${e.id}')">📋 نسخ</button><button class="ghost" style="padding:7px 10px;font-size:13px;color:#b44" onclick="delJournal('${e.id}')">حذف</button></div></div>`}).join('');
+  document.querySelectorAll('img[data-jimg]').forEach(async im=>{const d=await getBlob('j_'+im.dataset.jimg);if(d)im.src=d;else im.remove()})}
+function journalText(e){return e.kind==='debrief'?((e.chat||[]).map(m=>(m.w==='u'?'أنا: ':name()+': ')+m.t).join('\n')+(e.summary?'\n\nالخلاصة: '+e.summary:'')):((e.q?('«'+e.q+'»\n'):'')+e.a)}
+async function copyJournal(id){const e=S.journal.find(x=>x.id===id);const t=`${e.title}${e.page?' — ص '+e.page:''}\n${journalText(e)}`;try{await navigator.clipboard.writeText(t);toast('نُسخ ✓')}catch(_){openSheet(`<textarea style="min-height:260px">${esc(t)}</textarea>`)}}
+function delJournal(id){S.journal=S.journal.filter(x=>x.id!==id);delBlob('j_'+id);save();renderJournal();toast('حُذف من الدفتر')}
+async function journalCard(id){const e=S.journal.find(x=>x.id===id);if(!S.settings.key){addCard(e.q?('ما معنى: «'+e.q.slice(0,120)+'»؟'):'تذكّر هذا الشرح',e.a.slice(0,500),e.title,'fahm');return toast('أُضيفت البطاقة ✓')}
+  toast('أصنع البطاقة…');try{const out=await gemini([{role:'user',parts:[{text:'حوّل هذا الشرح إلى بطاقة استذكار واحدة تختبر الفهم. أعد JSON فقط: {"q":"…","a":"…"}\n\n'+journalText(e)}]}],{json:true});const c=pj(out);addCard(c.q,c.a,e.title,'fahm');toast('أُضيفت البطاقة 🗂️')}catch(err){aiErr(err)}}
 
 /* ================= flashcards (spaced repetition) ================= */
 const STEPS=[1,3,7,14,30,60];
@@ -695,7 +734,7 @@ async function askPersist(){try{const ok=await navigator.storage.persist();toast
 function renderSettings(){renderStorage();checkArabicVoice();$('rateIn').value=S.settings.rate||0.95;$('voiceChips').innerHTML=[[false,'أقرأ عند الضغط فقط'],[true,'اقرأ الشروح تلقائيًا']].map(([k,l])=>`<span class="chip ${!!S.settings.autoRead===k?'on':''}" onclick="S.settings.autoRead=${k};save();renderSettings()">${l}</span>`).join('');$('keyIn').value=S.settings.key;$('modelIn').value=S.settings.model;$('nameIn').value=S.settings.name;$('styleChips').innerHTML=[['fusha','فصحى مبسطة'],['mix','فصحى + لمسة عامية'],['ammiya','عامية مصرية']].map(([k,l])=>`<span class="chip ${S.settings.style===k?'on':''}" onclick="S.settings.style='${k}';renderSettings()">${l}</span>`).join('')}
 function saveSettings(){S.settings.key=$('keyIn').value.trim();S.settings.model=$('modelIn').value.trim()||'gemini-flash-latest';S.settings.name=$('nameIn').value.trim()||'أنيس';save();toast('حُفظت الإعدادات ✓')}
 async function testKey(){saveSettings();$('testOut').textContent='جارٍ الاختبار…';window.onTry=m=>$('testOut').textContent='جارٍ الاختبار مع '+m+' …';try{const o=await gemini([{role:'user',parts:[{text:'قل تحية قصيرة جدًا للقارئ في جملة واحدة.'}]}]);$('testOut').textContent='✓ يعمل: '+o}catch(e){$('testOut').textContent=e.message==='NOKEY'?'أدخل المفتاح أولًا':'✗ '+e.message}window.onTry=null}
-async function exportData(){const data=JSON.stringify({cards:S.cards,notes:S.books.map(b=>({title:b.title,notes:b.notes})),sessions:S.sessions},null,1);try{await navigator.clipboard.writeText(data);toast('نُسخت البيانات ✓ الصقها في ملف أو رسالة لنفسك')}catch(e){openSheet(`<b>انسخ هذا النص واحفظه:</b><textarea style="min-height:260px;margin-top:10px;direction:ltr">${esc(data)}</textarea>`)}}
+async function exportData(){const data=JSON.stringify({journal:S.journal,cards:S.cards,notes:S.books.map(b=>({title:b.title,notes:b.notes})),sessions:S.sessions},null,1);try{await navigator.clipboard.writeText(data);toast('نُسخت البيانات ✓ الصقها في ملف أو رسالة لنفسك')}catch(e){openSheet(`<b>انسخ هذا النص واحفظه:</b><textarea style="min-height:260px;margin-top:10px;direction:ltr">${esc(data)}</textarea>`)}}
 
 /* ================= boot ================= */
 ensureSample().then(renderHome);
