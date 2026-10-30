@@ -42,5 +42,6 @@
     <queries>
         <intent><action android:name="android.speech.RecognitionService" /></intent>
         <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
+        <package android:name="com.google.android.tts" />
     </queries>
 </manifest>

@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   build:
@@ -35,7 +36,8 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee ../build.log
 
       - name: Rename APK
         run: cp android/app/build/outputs/apk/debug/app-debug.apk anis.apk
@@ -53,3 +55,11 @@ jobs:
           body: حمّل ملف anis.apk من الأسفل وثبّته على هاتفك.
           files: anis.apk
           make_latest: true
+
+      - name: Report build failure as an issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tail -c 60000 build.log > tail.log || echo "no log" > tail.log
+          gh issue create -R ${{ github.repository }} --title "Build ${{ github.run_number }} failed" --body-file tail.log
