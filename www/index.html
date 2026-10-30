@@ -263,6 +263,7 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
   <div class="row" style="margin-top:8px"><span class="muted">سرعة القراءة</span><input id="rateIn" type="range" min="0.6" max="1.4" step="0.05" class="grow" oninput="S.settings.rate=+this.value;save()"></div>
   <div class="row wrap" style="margin-top:8px;gap:8px"><button class="ghost" onclick="speak('أهلًا بك، أنا أنيس. سأقرأ لك الشروح بهذا الصوت.',this)">🔊 جرّب الصوت</button><button class="ghost" onclick="openVoiceInstall()">⬇️ تحميل الصوت العربي</button><button class="ghost" onclick="openVoiceSettings()">⚙️ إعدادات الصوت في الهاتف</button></div>
   <div class="muted" id="voiceStatus" style="margin-top:6px"></div>
+  <div class="muted" style="margin-top:12px">صوت قراءة الشروح والإجابات:</div><div id="evChips"></div>
   <div class="muted" style="margin-top:12px">صوت الذكاء الاصطناعي:</div><div id="gvChips"></div>
   <h2>سرعة أنيس</h2>
   <div id="speedChips"></div>
@@ -306,8 +307,31 @@ const STTn=plug('SpeechRecognition');
 const AV=plug('AnisVoice');
 let speakingBtn=null;
 function speechText(t){return String(t).replace(/\*\*/g,'').replace(/[#*_`>]/g,'').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').replace(/\s+\n/g,'\n').trim()}
-function setSpeakBtn(b,on){if(!b)return;b.textContent=on?'⏹️ إيقاف القراءة':'🔊 اقرأها لي'}
-async function stopSpeak(){speakStop=true;try{if(gAudio){const a=gAudio;gAudio=null;a.pause();a.onended&&a.onended()}if(AV)await AV.stop();else if(TTSn)await TTSn.stop();else speechSynthesis?.cancel()}catch(e){}if(speakingBtn)setSpeakBtn(speakingBtn,false);speakingBtn=null}
+function setSpeakBtn(b,st){if(!b)return;b.textContent=st==='play'?'⏸️ إيقاف مؤقت':st==='pause'?'▶️ استئناف':'🔊 اقرأها لي'}
+/* ---------- unified player: pause / resume / stop for both voices ---------- */
+const P={on:false,paused:false,mode:'device',interrupted:false,onState:null};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function pState(){const st=!P.on?'idle':P.paused?'pause':'play';try{P.onState&&P.onState(st)}catch(e){}if(speakingBtn)setSpeakBtn(speakingBtn,st)}
+async function waitResume(){while(P.on&&P.paused)await sleep(150)}
+async function deviceSpeak(c){const rate=S.settings.rate||0.95;
+  if(AV)return AV.speak({text:c,rate});
+  if(window.speechSynthesis)return new Promise(res=>{const u=new SpeechSynthesisUtterance(c);u.lang='ar-SA';u.rate=rate;const v=speechSynthesis.getVoices().find(v=>/^ar/i.test(v.lang));if(v)u.voice=v;u.onend=u.onerror=res;speechSynthesis.speak(u)});
+  if(TTSn){const tag=await findArabicTag();return TTSn.speak({text:c,lang:tag||'ar',rate,pitch:1,volume:1,category:'playback'})}}
+async function playText(t,mode,onState){await playerStop();t=speechText(t);if(!t)return;
+  P.on=true;P.paused=false;P.mode=mode;P.onState=onState||null;speakStop=false;pState();
+  const cs=mode==='ai'?chunks(t,1100):chunks(t,280);
+  let next=mode==='ai'?geminiAudio(cs[0]):null;
+  try{for(let i=0;i<cs.length;i++){
+    await waitResume();if(!P.on)break;
+    if(mode==='ai'){const url=await next;if(i+1<cs.length)next=geminiAudio(cs[i+1]);await waitResume();if(!P.on)break;await playUrl(url);}
+    else{P.interrupted=false;try{await deviceSpeak(cs[i])}catch(e){if(!P.interrupted)throw e}if(P.interrupted&&P.on){i--;continue}}
+  }}finally{P.on=false;P.paused=false;pState();P.onState=null}}
+async function playerPause(){if(!P.on||P.paused)return;P.paused=true;
+  if(P.mode==='ai'){if(gAudio)gAudio.pause()}else{P.interrupted=true;try{if(AV)await AV.stop();else if(window.speechSynthesis)speechSynthesis.cancel();else if(TTSn)await TTSn.stop()}catch(e){}}pState()}
+function playerResume(){if(!P.on||!P.paused)return;P.paused=false;if(P.mode==='ai'&&gAudio)gAudio.play().catch(()=>{});pState()}
+function playerToggle(){if(!P.on)return;P.paused?playerResume():playerPause()}
+async function playerStop(){speakStop=true;P.on=false;P.paused=false;P.interrupted=true;try{if(gAudio){const a=gAudio;gAudio=null;a.pause();a.onended&&a.onended()}if(AV)await AV.stop();else if(TTSn)await TTSn.stop();else window.speechSynthesis?.cancel()}catch(e){}}
+async function stopSpeak(){await playerStop();if(speakingBtn)setSpeakBtn(speakingBtn,'idle');speakingBtn=null}
 let arTag=null,speakStop=false,gAudio=null;
 async function avStatus(){if(!AV)return null;for(let i=0;i<15;i++){try{const st=await AV.status();if(st.ready)return st}catch(e){return null}await new Promise(r=>setTimeout(r,250))}try{return await AV.status()}catch(e){return null}}
 async function findArabicTag(){
@@ -336,25 +360,17 @@ async function geminiAudio(t){
   throw new Error(lastErr||'GEMINI_TTS');
 }
 async function playUrl(url){if(speakStop)return;gAudio=new Audio(url);gAudio.playbackRate=S.settings.rate||0.95;await new Promise(res=>{gAudio.onended=gAudio.onerror=res;gAudio.play().catch(res)});gAudio=null;try{URL.revokeObjectURL(url)}catch(e){}}
-async function geminiSpeak(t){const cs=chunks(t,1100);let next=geminiAudio(cs[0]);for(let i=0;i<cs.length;i++){const url=await next;if(i+1<cs.length)next=geminiAudio(cs[i+1]);if(speakStop||(RA&&RA.skip))return;await playUrl(url)}}
+async function voiceMode(pref){if(pref==='ai')return 'ai';const st=AV?await avStatus():null;if(st&&st.arabic)return 'device';if(!AV&&window.speechSynthesis)return 'device';if(!AV&&TTSn&&await findArabicTag())return 'device';return 'ai-fallback'}
 async function speak(text,btn){
-  if(speakingBtn!==null||gAudio){const same=speakingBtn===btn;await stopSpeak();if(same&&btn)return}
-  const t=speechText(text);if(!t)return;speakingBtn=btn||0;setSpeakBtn(btn,true);speakStop=false;
-  const rate=S.settings.rate||0.95;
-  try{
-    const st=AV?await avStatus():null;
-    if(st&&st.arabic){for(const c of chunks(t)){if(speakStop)break;await AV.speak({text:c,rate})}}
-    else if(st){ if(!S.voiceHint){S.voiceHint=1;save();toast('هاتفك بلا صوت عربي بعد — سأقرأ بصوت Gemini الآن. لصوت مجاني بلا إنترنت: الإعدادات ← «تحميل الصوت العربي»',7000)} await geminiSpeak(t); }
-    else if(TTSn){
-      const tag=await findArabicTag();
-      if(tag){for(const c of chunks(t)){if(speakStop)break;await TTSn.speak({text:c,lang:tag,rate,pitch:1.0,volume:1.0,category:'playback'})}}
-      else { if(!S.voiceHint){S.voiceHint=1;save();toast('هاتفك بلا صوت عربي — سأقرأ بصوت Gemini الآن. لصوت مجاني بلا إنترنت: الإعدادات ← «تحميل الصوت العربي»',7000)} await geminiSpeak(t); }
-    }
-    else if(window.speechSynthesis){await new Promise((res)=>{const u=new SpeechSynthesisUtterance(t);u.lang='ar-SA';u.rate=rate;const v=speechSynthesis.getVoices().find(v=>/^ar/i.test(v.lang));if(v)u.voice=v;u.onend=u.onerror=res;speechSynthesis.speak(u)})}
-    else await geminiSpeak(t);
-  }catch(e){ if(e.message==='NOVOICE')openSheet(`<b>لا يوجد صوت عربي على هاتفك بعد 🔈</b><p class="muted" style="line-height:1.8">حمّل الصوت العربي المجاني من جوجل (مرة واحدة، ويعمل بلا إنترنت).</p><button style="width:100%" onclick="closeSheet();openVoiceInstall()">⬇️ تحميل الصوت العربي</button>`);
-    else toast('تعذّرت القراءة الصوتية: '+(e.message||'').slice(0,80),6000) }
-  if(speakingBtn===(btn||0)){setSpeakBtn(btn,false);speakingBtn=null}
+  if(btn&&speakingBtn===btn&&P.on){playerToggle();return}
+  if(RA)await stopReadPage();
+  await stopSpeak();
+  let mode=await voiceMode(S.settings.explainVoice||'device');
+  if(mode==='ai-fallback'){if(!S.settings.key){openSheet(`<b>لا يوجد صوت عربي على هاتفك بعد 🔈</b><p class="muted" style="line-height:1.8">حمّل الصوت العربي المجاني من جوجل (مرة واحدة، ويعمل بلا إنترنت).</p><button style="width:100%" onclick="closeSheet();openVoiceInstall()">⬇️ تحميل الصوت العربي</button>`);return}
+    if(!S.voiceHint){S.voiceHint=1;save();toast('هاتفك بلا صوت عربي بعد — سأقرأ بصوت الذكاء الاصطناعي. للصوت المجاني: الإعدادات ← «تحميل الصوت العربي»',7000)}mode='ai'}
+  speakingBtn=btn||null;
+  try{await playText(text,mode)}catch(e){toast('تعذّرت القراءة الصوتية: '+(e.message||'').slice(0,80),6000)}
+  if(speakingBtn===(btn||null)){setSpeakBtn(btn,'idle');speakingBtn=null}
 }
 function speakBtnHTML(id){return `<button class="ghost" style="padding:10px 12px" onclick="speak(document.getElementById('${id}').innerText,this)">🔊 اقرأها لي</button>`}
 function autoSpeak(id){if(S.settings.autoRead){const el=$(id);const b=el?.parentElement?.querySelector('button[onclick^="speak"]');if(el)speak(el.innerText,b)}}
@@ -418,7 +434,7 @@ function go(s){
   window.scrollTo(0,0);
 }
 function openSheet(html){$('sheet').innerHTML=html;$('sheetBg').classList.add('on')}
-function closeSheet(){$('sheetBg').classList.remove('on');if(speakingBtn!==null||gAudio)stopSpeak()}
+function closeSheet(){$('sheetBg').classList.remove('on');if(speakingBtn&&!RA)stopSpeak()}
 
 /* ================= Gemini ================= */
 function persona(){
@@ -737,30 +753,28 @@ function openReadPage(){if(!R)return;const m=S.settings.readMode||'device',c=S.s
   <label class="row" style="margin:14px 0;gap:10px"><input type="checkbox" style="width:22px;height:22px" ${c?'checked':''} onchange="S.settings.readCont=this.checked;save()"><span>تابع القراءة للصفحات التالية تلقائيًا</span></label>
   <button style="width:100%;padding:15px;font-size:17px" onclick="closeSheet();startReadPage()">▶️ ابدأ القراءة من صفحة ${R.book.pos+1}</button>`)}
 function raBar(txt){let el=$('raBar');if(!el){el=document.createElement('div');el.id='raBar';el.className='rabar';document.body.appendChild(el)}
-  if(!txt){el.remove();return}el.innerHTML=`<span class="grow">${txt}</span><button class="ghost" onclick="raSkip()" title="الصفحة التالية">⏭️</button><button onclick="stopReadPage()">⏹️ إيقاف</button>`}
+  if(!txt){el.remove();return}const paused=P.on&&P.paused;
+  el.innerHTML=`<span class="grow">${txt}</span><button class="ghost" id="raPP" onclick="playerToggle()" ${P.on?'':'disabled'}>${paused?'▶️':'⏸️'}</button><button class="ghost" onclick="raSkip()" title="الصفحة التالية">⏭️</button><button onclick="stopReadPage()">⏹️</button>`}
 async function startReadPage(){if(RA)await stopReadPage();await stopSpeak();
-  const mode=S.settings.readMode||'device';
-  if(mode==='device'){const st=AV?await avStatus():null;const webOK=!AV&&window.speechSynthesis;if(!(st&&st.arabic)&&!webOK){openSheet(`<b>صوت الهاتف العربي غير جاهز بعد 🔈</b><p class="muted" style="line-height:1.8">حمّل الصوت العربي من جوجل (مرة واحدة)، أو استخدم صوت الذكاء الاصطناعي الآن.</p><div class="row" style="gap:8px"><button class="grow" onclick="closeSheet();openVoiceInstall()">⬇️ تحميل الصوت العربي</button><button class="ghost" onclick="S.settings.readMode='ai';save();closeSheet();startReadPage()">✨ صوت الذكاء الاصطناعي</button></div>`);return}}
+  let mode=S.settings.readMode||'device';
+  if(mode==='device'){const m=await voiceMode('device');if(m!=='device'){openSheet(`<b>صوت الهاتف العربي غير جاهز بعد 🔈</b><p class="muted" style="line-height:1.8">حمّل الصوت العربي من جوجل (مرة واحدة)، أو استخدم صوت الذكاء الاصطناعي الآن.</p><div class="row" style="gap:8px"><button class="grow" onclick="closeSheet();openVoiceInstall()">⬇️ تحميل الصوت العربي</button><button class="ghost" onclick="S.settings.readMode='ai';save();closeSheet();startReadPage()">✨ صوت الذكاء الاصطناعي</button></div>`);return}}
   if((R.book.type==='pdf'||mode==='ai')&&!S.settings.key){aiErr(new Error('NOKEY'));return}
-  RA={on:true,mode,skip:false};speakStop=false;
+  RA={on:true,mode,skip:false};
   if(soundOn&&ambGain&&AC)ambGain.gain.linearRampToValueAtTime(0.04,AC.currentTime+1);
   try{
     while(RA&&RA.on){const idx=R.book.pos;raBar(`🎧 <span class="dots">أجهّز صفحة ${idx+1}</span>`);
       const text=(await pageText(idx)||'').trim();if(!RA||!RA.on)break;
       if(R.book.type==='pdf'&&idx+1<R.book.total&&S.settings.readCont!==false)pageText(idx+1).catch(()=>{});
-      raBar(`🎧 يقرأ صفحة ${idx+1}`);
-      if(text){const t=speechText(text);
-        if(mode==='ai')await geminiSpeak(t);
-        else if(AV){for(const c of chunks(t)){if(!RA||!RA.on||RA.skip)break;await AV.speak({text:c,rate:S.settings.rate||0.95})}}
-        else await new Promise(res=>{const u=new SpeechSynthesisUtterance(t);u.lang='ar-SA';u.rate=S.settings.rate||0.95;u.onend=u.onerror=res;speechSynthesis.speak(u)});}
-      if(!RA||!RA.on)break;RA.skip=false;speakStop=false;
+      const label=st=>raBar(st==='pause'?`⏸️ متوقف عند صفحة ${idx+1}`:`🎧 يقرأ صفحة ${idx+1}`);
+      if(text)await playText(text,mode,label);
+      if(!RA||!RA.on)break;RA.skip=false;
       if(S.settings.readCont===false||idx+1>=R.book.total){if(idx+1>=R.book.total)toast('وصلنا إلى آخر الكتاب 🎉');break}
       if(R.book.pos===idx)await turn(1);
     }
   }catch(e){aiErr(e)}
   RA=null;raBar(null);if(soundOn&&ambGain&&AC)ambGain.gain.linearRampToValueAtTime(0.16,AC.currentTime+2);}
 async function stopReadPage(){if(RA)RA.on=false;await stopSpeak();raBar(null)}
-async function raSkip(){if(!RA)return;RA.skip=true;await stopSpeak();speakStop=false}
+async function raSkip(){if(!RA)return;RA.skip=true;await playerStop();speakStop=false}
 
 /* ================= journal (دفتري) ================= */
 const JK={friend:'💬 شرح كصديق',life:'🌱 مثال من الحياة',irab:'✍️ إعراب',ask:'❓ سؤال',debrief:'🗣️ محاورة بعد الجلسة'};
@@ -824,7 +838,7 @@ function grade(ok){const c=revQ.shift();const card=S.cards.find(x=>x.id===c.id);
 async function renderStorage(){const B=$('storeBox');try{const persisted=await navigator.storage?.persisted?.();const est=await navigator.storage?.estimate?.();const mb=x=>(x/1048576).toFixed(x>1048576*100?0:1);
   B.innerHTML=`<div class="row"><div class="grow"><b>المساحة</b><div class="muted">${est?`مستخدم ${mb(est.usage)} ميجا من ${est.quota>1073741824?(est.quota/1073741824).toFixed(1)+' جيجا':mb(est.quota)+' ميجا'} متاحة`:'غير معروفة'} · ${S.books.length} كتب · ${S.cards.length} بطاقة</div><div class="muted">${persisted?'🔒 التخزين دائم: لن يمسحه المتصفح':'⚠️ التخزين غير محمي بعد'}</div></div>${persisted?'':'<button class="soft" onclick="askPersist()">احمِ بياناتي</button>'}</div>`}catch(e){B.innerHTML='<span class="muted">لا يمكن حساب المساحة في هذا المتصفح.</span>'}}
 async function askPersist(){try{const ok=await navigator.storage.persist();toast(ok?'تم ✓ بياناتك محمية':'المتصفح لم يوافق بعد — أضف التطبيق للشاشة الرئيسية ثم جرّب');}catch(e){toast('غير مدعوم هنا')}renderStorage()}
-function renderSettings(){renderStorage();$('speedChips').innerHTML=[['fast','⚡ سريع'],['deep','🧠 أعمق (أبطأ)']].map(([k,l])=>`<span class="chip ${(S.settings.speed||'fast')===k?'on':''}" onclick="S.settings.speed='${k}';save();renderSettings()">${l}</span>`).join('');$('gvChips').innerHTML=[['Charon','صوت رجل'],['Kore','صوت امرأة']].map(([v,l])=>`<span class="chip ${gVoice()===v?'on':''}" onclick="S.settings.gvoice='${v}';save();renderSettings()">${l}</span>`).join('');checkArabicVoice();$('rateIn').value=S.settings.rate||0.95;$('voiceChips').innerHTML=[[false,'أقرأ عند الضغط فقط'],[true,'اقرأ الشروح تلقائيًا']].map(([k,l])=>`<span class="chip ${!!S.settings.autoRead===k?'on':''}" onclick="S.settings.autoRead=${k};save();renderSettings()">${l}</span>`).join('');$('keyIn').value=S.settings.key;$('modelIn').value=S.settings.model;$('nameIn').value=S.settings.name;$('styleChips').innerHTML=[['fusha','فصحى مبسطة'],['mix','فصحى + لمسة عامية'],['ammiya','عامية مصرية']].map(([k,l])=>`<span class="chip ${S.settings.style===k?'on':''}" onclick="S.settings.style='${k}';renderSettings()">${l}</span>`).join('')}
+function renderSettings(){renderStorage();$('evChips').innerHTML=[['device','📱 صوت الهاتف (مجاني)'],['ai','✨ الذكاء الاصطناعي (أجمل)']].map(([k,l])=>`<span class="chip ${(S.settings.explainVoice||'device')===k?'on':''}" onclick="S.settings.explainVoice='${k}';save();renderSettings()">${l}</span>`).join('');$('speedChips').innerHTML=[['fast','⚡ سريع'],['deep','🧠 أعمق (أبطأ)']].map(([k,l])=>`<span class="chip ${(S.settings.speed||'fast')===k?'on':''}" onclick="S.settings.speed='${k}';save();renderSettings()">${l}</span>`).join('');$('gvChips').innerHTML=[['Charon','صوت رجل'],['Kore','صوت امرأة']].map(([v,l])=>`<span class="chip ${gVoice()===v?'on':''}" onclick="S.settings.gvoice='${v}';save();renderSettings()">${l}</span>`).join('');checkArabicVoice();$('rateIn').value=S.settings.rate||0.95;$('voiceChips').innerHTML=[[false,'أقرأ عند الضغط فقط'],[true,'اقرأ الشروح تلقائيًا']].map(([k,l])=>`<span class="chip ${!!S.settings.autoRead===k?'on':''}" onclick="S.settings.autoRead=${k};save();renderSettings()">${l}</span>`).join('');$('keyIn').value=S.settings.key;$('modelIn').value=S.settings.model;$('nameIn').value=S.settings.name;$('styleChips').innerHTML=[['fusha','فصحى مبسطة'],['mix','فصحى + لمسة عامية'],['ammiya','عامية مصرية']].map(([k,l])=>`<span class="chip ${S.settings.style===k?'on':''}" onclick="S.settings.style='${k}';renderSettings()">${l}</span>`).join('')}
 function saveSettings(){S.settings.key=$('keyIn').value.trim();S.settings.model=$('modelIn').value.trim()||'gemini-flash-latest';S.settings.name=$('nameIn').value.trim()||'أنيس';save();toast('حُفظت الإعدادات ✓')}
 async function testKey(){saveSettings();$('testOut').textContent='جارٍ الاختبار…';window.onTry=m=>$('testOut').textContent='جارٍ الاختبار مع '+m+' …';try{const o=await gemini([{role:'user',parts:[{text:'قل تحية قصيرة جدًا للقارئ في جملة واحدة.'}]}]);$('testOut').textContent='✓ يعمل: '+o}catch(e){$('testOut').textContent=e.message==='NOKEY'?'أدخل المفتاح أولًا':'✗ '+e.message}window.onTry=null}
 async function exportData(){const data=JSON.stringify({journal:S.journal,cards:S.cards,notes:S.books.map(b=>({title:b.title,notes:b.notes})),sessions:S.sessions},null,1);try{await navigator.clipboard.writeText(data);toast('نُسخت البيانات ✓ الصقها في ملف أو رسالة لنفسك')}catch(e){openSheet(`<b>انسخ هذا النص واحفظه:</b><textarea style="min-height:260px;margin-top:10px;direction:ltr">${esc(data)}</textarea>`)}}
