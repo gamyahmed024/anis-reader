@@ -15,6 +15,7 @@
 @font-face{font-family:'Tajawal';src:url(fonts/tajawal-latin-400-normal.woff2) format('woff2');font-weight:400;unicode-range:U+0000-00FF}
 @font-face{font-family:'Tajawal';src:url(fonts/tajawal-latin-700-normal.woff2) format('woff2');font-weight:700;unicode-range:U+0000-00FF}
 </style>
+<script src="lib/capacitor.js"></script>
 <script src="lib/pdf.min.js"></script>
 <style>
 :root{
@@ -46,7 +47,12 @@ h2{font-size:18px;margin:22px 0 10px}
 .stat b{display:block;font-size:22px}
 .book{display:flex;gap:12px;align-items:center;padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line);margin-bottom:10px}
 .book .spine{width:42px;height:58px;border-radius:6px;display:grid;place-items:center;color:#fff;font-family:Amiri;font-size:22px;flex:none}
-.book .t{font-weight:700}
+.book .t{font-weight:700;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.book .grow{min-width:0}
+body{overflow-x:hidden}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.folder{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;cursor:pointer;box-shadow:var(--shadow)}
+.folder .t{font-weight:700;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chip{display:inline-block;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--paper);margin:4px;cursor:pointer;font-size:14px}
 .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .hero{display:flex;gap:14px;align-items:center}
@@ -154,13 +160,14 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
   <div id="dueBox" style="margin-top:12px;display:none">
     <button class="soft" style="width:100%" onclick="go('review')">🗂️ راجع بطاقاتك اليوم (<span id="dueN"></span>)</button>
   </div>
-  <h2>مكتبتي</h2>
+  <div class="row" style="margin:22px 0 10px"><h2 class="grow" style="margin:0" id="libTitle">مكتبتي</h2><button class="ghost" style="padding:8px 12px;font-size:14px" id="newFolderBtn" onclick="newFolder()">📁＋ مجلد جديد</button></div>
+  <div id="folders"></div>
   <div id="library"></div>
   <div class="row wrap" style="margin-top:6px">
     <label class="grow"><button class="ghost" style="width:100%" onclick="document.getElementById('fileIn').click()">＋ أضف كتاب PDF أو TXT</button></label>
     <button class="ghost" onclick="openPaste()">📋 الصق نصًا</button>
   </div>
-  <input type="file" id="fileIn" accept=".pdf,.txt,application/pdf,text/plain" style="display:none">
+  <input type="file" id="fileIn" multiple accept=".pdf,.txt,application/pdf,text/plain" style="display:none">
   <div id="noKey" class="card" style="margin-top:18px;display:none">
     <b>شغّل عقل أنيس ✨</b>
     <div class="muted" style="margin:6px 0 10px">التطبيق يعمل كقارئ بدون مفتاح، لكن الشرح والمحاورة يحتاجان مفتاح Gemini API (مجاني من Google AI Studio).</div>
@@ -270,10 +277,12 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
 </div>
 
 <script>
+window.addEventListener('error',e=>{try{const t=document.getElementById('toast');t.textContent='خطأ: '+(e.message||'').slice(0,120);t.classList.add('on');setTimeout(()=>t.classList.remove('on'),6000)}catch(_){}});
 /* ================= voice: read aloud + dictation ================= */
 const CAP=window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform();
-const TTSn=CAP?Capacitor.registerPlugin('TextToSpeech'):null;
-const STTn=CAP?Capacitor.registerPlugin('SpeechRecognition'):null;
+function plug(n){try{if(!CAP)return null;if(Capacitor.registerPlugin)return Capacitor.registerPlugin(n);return (Capacitor.Plugins&&Capacitor.Plugins[n])||null}catch(e){return null}}
+const TTSn=plug('TextToSpeech');
+const STTn=plug('SpeechRecognition');
 let speakingBtn=null;
 function speechText(t){return String(t).replace(/\*\*/g,'').replace(/[#*_`>]/g,'').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').replace(/\s+\n/g,'\n').trim()}
 function setSpeakBtn(b,on){if(!b)return;b.textContent=on?'⏹️ إيقاف القراءة':'🔊 اقرأها لي'}
@@ -385,15 +394,18 @@ const imgPart=dataUrl=>({inline_data:{mime_type:'image/jpeg',data:dataUrl.split(
 
 /* ================= library ================= */
 $('fileIn').addEventListener('change',async e=>{
-  const f=e.target.files[0]; e.target.value=''; if(!f) return;
-  const id=uid(); const isPdf=/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name);
-  const title=f.name.replace(/\.(pdf|txt)$/i,'');
-  if(isPdf){ const buf=await f.arrayBuffer(); await putBlob(id,buf); S.books.push({id,title,type:'pdf',pos:0,total:0,added:Date.now(),notes:[]}); }
-  else { const txt=await f.text(); await putBlob(id,txt); S.books.push({id,title,type:'text',pos:0,total:0,added:Date.now(),notes:[]}); }
-  save(); renderHome(); toast('أُضيف «'+title+'» إلى مكتبتك 📚');
+  const files=[...e.target.files]; e.target.value=''; if(!files.length) return;
+  toast('جارٍ الإضافة…'); let n=0,last='';
+  for(const f of files){ try{
+    const id=uid(); const isPdf=/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name);
+    const title=f.name.replace(/\.(pdf|txt)$/i,'').replace(/[_]+/g,' ').replace(/\s+/g,' ').trim()||'كتاب'; last=title;
+    if(isPdf){ const buf=await f.arrayBuffer(); await putBlob(id,buf); S.books.push({id,title,type:'pdf',pos:0,total:0,added:Date.now(),notes:[],folder:curFolder}); }
+    else { const txt=await f.text(); await putBlob(id,txt); S.books.push({id,title,type:'text',pos:0,total:0,added:Date.now(),notes:[],folder:curFolder}); }
+    n++; }catch(err){ toast('تعذّرت إضافة '+f.name) } }
+  save(); renderHome(); const where=curFolder?(' إلى «'+folderName(curFolder)+'»'):' إلى مكتبتك'; toast((n>1?('أُضيف '+n+' كتب'):('أُضيف «'+last+'»'))+where+' 📚');
 });
 function openPaste(){openSheet(`<h2 style="margin-top:0">الصق نصًا لتقرأه</h2><input id="pT" placeholder="العنوان"><div style="height:8px"></div><textarea id="pX" style="min-height:220px" placeholder="الصق المقال أو الفصل هنا…"></textarea><div style="height:10px"></div><button style="width:100%" onclick="addPaste()">أضف</button>`)}
-async function addPaste(){const t=$('pT').value.trim()||'نص بلا عنوان',x=$('pX').value.trim(); if(!x)return toast('النص فارغ'); const id=uid(); await putBlob(id,x); S.books.push({id,title:t,type:'text',pos:0,total:0,added:Date.now(),notes:[]}); save(); closeSheet(); renderHome();}
+async function addPaste(){const t=$('pT').value.trim()||'نص بلا عنوان',x=$('pX').value.trim(); if(!x)return toast('النص فارغ'); const id=uid(); await putBlob(id,x); S.books.push({id,title:t,type:'text',pos:0,total:0,added:Date.now(),notes:[],folder:curFolder}); save(); closeSheet(); renderHome();}
 
 const SAMPLE=`الملكة اللغوية ليست حفظًا للقواعد، بل هي أن يصير الكلام الفصيح عادةً في اللسان والأذن، كما يصير المشي عادةً في القدمين. فالطفل لا يتعلم لغة أمه بحفظ الجداول، وإنما بكثرة السماع ثم المحاكاة ثم الاستعمال.
 
@@ -414,12 +426,32 @@ function renderHome(){
   $('stStreak').textContent=streak(); $('stMin').textContent=S.sessions.reduce((a,s)=>a+s.min,0); const due=dueCards().length; $('stDue').textContent=due;
   $('dueBox').style.display=due?'block':'none'; $('dueN').textContent=due;
   $('noKey').style.display=S.settings.key?'none':'block';
-  const L=$('library');
-  if(!S.books.length){L.innerHTML='<div class="muted">مكتبتك فارغة. أضف كتابًا لتبدأ.</div>';return}
-  L.innerHTML=[...S.books].reverse().map((b,i)=>{const pct=b.total?Math.round((b.pos+1)/b.total*100):0;return `<div class="book"><div class="spine" style="background:${hues[b.title.length%hues.length]}">${esc(b.title.trim()[0]||'ك')}</div><div class="grow"><div class="t">${esc(b.title)}</div><div class="muted">${b.type==='pdf'?'PDF':'نص'} · ${b.total?('صفحة '+(b.pos+1)+' من '+b.total+' · '+pct+'%'):'لم يبدأ بعد'}</div></div><button onclick="setupSession('${b.id}')">اقرأ</button><button class="ghost" style="padding:10px" onclick="bookMenu('${b.id}')">⋯</button></div>`}).join('');
+  S.folders=S.folders||[]; if(curFolder&&!S.folders.find(f=>f.id===curFolder))curFolder=null;
+  const F=$('folders'), L=$('library');
+  if(curFolder){
+    $('libTitle').innerHTML=`<span style="cursor:pointer" onclick="openFolder(null)">مكتبتي</span> <span class="muted">›</span> 📁 ${esc(folderName(curFolder))}`;
+    $('newFolderBtn').textContent='⋯ المجلد'; $('newFolderBtn').onclick=()=>folderMenu(curFolder);
+    F.innerHTML=`<button class="ghost" style="margin-bottom:10px;padding:8px 14px;font-size:14px" onclick="openFolder(null)">→ رجوع للمكتبة</button>`;
+  } else {
+    $('libTitle').textContent='مكتبتي'; $('newFolderBtn').textContent='📁＋ مجلد جديد'; $('newFolderBtn').onclick=newFolder;
+    F.innerHTML=S.folders.length?`<div class="fgrid">${S.folders.map(f=>{const c=S.books.filter(b=>b.folder===f.id).length;return `<div class="folder" onclick="openFolder('${f.id}')"><div style="font-size:30px">📁</div><div class="t">${esc(f.name)}</div><div class="muted" style="font-size:13px">${c} ${c===1?'كتاب':'كتب'}</div></div>`}).join('')}</div>${S.books.some(b=>!b.folder)?'<div class="muted" style="margin:14px 0 8px">كتب خارج المجلدات</div>':''}`:'';
+  }
+  const list=S.books.filter(b=>curFolder?b.folder===curFolder:!b.folder);
+  if(!list.length){L.innerHTML=curFolder?'<div class="muted">هذا المجلد فارغ. أضف كتبًا إليه من الزر بالأسفل، أو انقل كتبًا موجودة من زر ⋯ بجانب أي كتاب.</div>':(S.folders.length?'':'<div class="muted">مكتبتك فارغة. أضف كتابًا لتبدأ.</div>');return}
+  L.innerHTML=[...list].reverse().map((b,i)=>{const pct=b.total?Math.round((b.pos+1)/b.total*100):0;return `<div class="book"><div class="spine" style="background:${hues[b.title.length%hues.length]}">${esc(b.title.trim()[0]||'ك')}</div><div class="grow"><div class="t">${esc(b.title)}</div><div class="muted">${b.type==='pdf'?'PDF':'نص'} · ${b.total?('صفحة '+(b.pos+1)+' من '+b.total+' · '+pct+'%'):'لم يبدأ بعد'}</div></div><button onclick="setupSession('${b.id}')">اقرأ</button><button class="ghost" style="padding:10px" onclick="bookMenu('${b.id}')">⋯</button></div>`}).join('');
 }
+let curFolder=null;
+const folderName=id=>(S.folders||[]).find(f=>f.id===id)?.name||'';
+function openFolder(id){curFolder=id;renderHome();window.scrollTo(0,0)}
+function newFolder(after){openSheet(`<h2 style="margin-top:0">مجلد جديد 📁</h2><input id="fName" placeholder="مثلًا: كتب النحو، روايات، الملكة اللغوية" onkeydown="if(event.key==='Enter')saveFolder(null,'${after||''}')"><div class="row" style="margin-top:12px"><button class="grow" onclick="saveFolder(null,'${after||''}')">إنشاء</button><button class="ghost" onclick="closeSheet()">إلغاء</button></div>`);setTimeout(()=>$('fName')?.focus(),200)}
+function saveFolder(id,moveBook){const n=$('fName').value.trim();if(!n)return toast('اكتب اسم المجلد');S.folders=S.folders||[];
+  if(id){S.folders.find(f=>f.id===id).name=n}else{const fid=uid();S.folders.push({id:fid,name:n});if(moveBook){const b=S.books.find(x=>x.id===moveBook);if(b)b.folder=fid}}
+  save();closeSheet();renderHome();toast(id?'تمت إعادة التسمية':'أُنشئ المجلد ✓')}
+function folderMenu(id){const f=S.folders.find(x=>x.id===id);openSheet(`<h2 style="margin-top:0">📁 ${esc(f.name)}</h2><input id="fName" value="${esc(f.name)}"><div class="row" style="margin-top:12px"><button class="grow" onclick="saveFolder('${id}')">حفظ الاسم</button><button class="ghost" style="color:#b44" onclick="delFolder('${id}')">حذف المجلد</button></div><div class="muted" style="margin-top:10px">حذف المجلد لا يحذف كتبه، بل يعيدها إلى المكتبة.</div>`)}
+function delFolder(id){S.folders=S.folders.filter(f=>f.id!==id);S.books.forEach(b=>{if(b.folder===id)b.folder=null});curFolder=null;save();closeSheet();renderHome();toast('حُذف المجلد، وعادت كتبه إلى المكتبة')}
+function moveBook(bid,fid){const b=S.books.find(x=>x.id===bid);b.folder=fid||null;save();closeSheet();renderHome();toast(fid?('نُقل إلى «'+folderName(fid)+'»'):'نُقل إلى المكتبة')}
 function toggleCards(id){const b=S.books.find(x=>x.id===id);b.cardsOn=b.cardsOn===false;save();bookMenu(id)}
-function bookMenu(id){const b=S.books.find(x=>x.id===id);const notes=(b.notes||[]).slice(-5).reverse();const on=b.cardsOn!==false;openSheet(`<h2 style="margin-top:0">${esc(b.title)}</h2><div class="card row" style="margin-bottom:12px"><div class="grow"><b>بطاقات المراجعة بعد الجلسة</b><div class="muted">${on?'مفعّلة: 2–3 بطاقات فقط لكل جلسة':'متوقفة: ملخص فقط (مناسب للروايات وقراءة المتعة)'}</div></div><button class="${on?'':'ghost'}" onclick="toggleCards('${id}')">${on?'تشغيل ✓':'إيقاف'}</button></div>${notes.length?'<b>ملخصات جلساتك:</b>'+notes.map(n=>`<div class="card" style="margin:8px 0"><div class="muted">${n.date} · صفحة ${n.page}</div><div class="answer">${fmtAns(n.summary)}</div></div>`).join(''):'<div class="muted">لا ملخصات بعد.</div>'}<div class="row" style="margin-top:14px"><button class="ghost grow" onclick="closeSheet()">إغلاق</button><button class="ghost" style="color:#b44" onclick="delBook('${id}')">حذف الكتاب</button></div>`)}
+function bookMenu(id){const b=S.books.find(x=>x.id===id);const notes=(b.notes||[]).slice(-5).reverse();const on=b.cardsOn!==false;openSheet(`<h2 style="margin-top:0">${esc(b.title)}</h2><div class="card row" style="margin-bottom:12px"><div class="grow"><b>بطاقات المراجعة بعد الجلسة</b><div class="muted">${on?'مفعّلة: 2–3 بطاقات فقط لكل جلسة':'متوقفة: ملخص فقط (مناسب للروايات وقراءة المتعة)'}</div></div><button class="${on?'':'ghost'}" onclick="toggleCards('${id}')">${on?'تشغيل ✓':'إيقاف'}</button></div>${notes.length?'<b>ملخصات جلساتك:</b>'+notes.map(n=>`<div class="card" style="margin:8px 0"><div class="muted">${n.date} · صفحة ${n.page}</div><div class="answer">${fmtAns(n.summary)}</div></div>`).join(''):'<div class="muted">لا ملخصات بعد.</div>'}<h2>المجلد</h2><div>${[[null,'📚 بدون مجلد'],...(S.folders||[]).map(f=>[f.id,'📁 '+f.name])].map(([fid,l])=>`<span class="chip ${(b.folder||null)===fid?'on':''}" onclick="moveBook('${id}',${fid?`'${fid}'`:'null'})">${esc(l)}</span>`).join('')}<span class="chip" onclick="newFolder('${id}')">＋ مجلد جديد</span></div><div class="row" style="margin-top:14px"><button class="ghost grow" onclick="closeSheet()">إغلاق</button><button class="ghost" style="color:#b44" onclick="delBook('${id}')">حذف الكتاب</button></div>`)}
 function delBook(id){openSheet(`<b>حذف الكتاب؟</b><p class="muted">ستبقى بطاقاتك محفوظة.</p><div class="row"><button class="grow" style="background:#b44" onclick="reallyDel('${id}')">احذف</button><button class="ghost grow" onclick="closeSheet()">تراجع</button></div>`)}
 function reallyDel(id){S.books=S.books.filter(b=>b.id!==id);delBlob(id);save();closeSheet();renderHome()}
 
@@ -634,6 +666,7 @@ window.addEventListener('popstate',()=>{history.pushState({s:'guard'},'');
   if($('reader').classList.contains('on'))return askEnd();
   if($('debrief').classList.contains('on'))return;
   if(!$('home').classList.contains('on'))return go('home');
+  if(curFolder)return openFolder(null);
   toast('أنت في المكتبة 📚');});
 </script>
 </body>
