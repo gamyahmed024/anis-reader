@@ -242,7 +242,7 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
 <!-- ========== SETTINGS ========== -->
 <section id="journal" class="screen">
   <h1>دفتري 📒</h1>
-  <div class="muted">كل ما تناقشتَ فيه مع أنيس: الشروح، أسئلتك، والمحاورات بعد الجلسات.</div>
+  <div class="muted">لكل كتاب دفتره: الشروح، أسئلتك، والمحاورات بعد الجلسات.</div>
   <input id="jSearch" placeholder="🔍 ابحث في دفترك…" style="margin-top:12px" oninput="renderJournal()">
   <div id="jBooks" style="margin-top:8px"></div>
   <div id="jList" style="margin-top:10px"></div>
@@ -526,7 +526,7 @@ function folderMenu(id){const f=S.folders.find(x=>x.id===id);openSheet(`<h2 styl
 function delFolder(id){S.folders=S.folders.filter(f=>f.id!==id);S.books.forEach(b=>{if(b.folder===id)b.folder=null});curFolder=null;save();closeSheet();renderHome();toast('حُذف المجلد، وعادت كتبه إلى المكتبة')}
 function moveBook(bid,fid){const b=S.books.find(x=>x.id===bid);b.folder=fid||null;save();closeSheet();renderHome();toast(fid?('نُقل إلى «'+folderName(fid)+'»'):'نُقل إلى المكتبة')}
 function toggleCards(id){const b=S.books.find(x=>x.id===id);b.cardsOn=b.cardsOn===false;save();bookMenu(id)}
-function bookMenu(id){const b=S.books.find(x=>x.id===id);const notes=(b.notes||[]).slice(-5).reverse();const on=b.cardsOn!==false;openSheet(`<h2 style="margin-top:0">${esc(b.title)}</h2><div class="card row" style="margin-bottom:12px"><div class="grow"><b>بطاقات المراجعة بعد الجلسة</b><div class="muted">${on?'مفعّلة: 2–3 بطاقات فقط لكل جلسة':'متوقفة: ملخص فقط (مناسب للروايات وقراءة المتعة)'}</div></div><button class="${on?'':'ghost'}" onclick="toggleCards('${id}')">${on?'تشغيل ✓':'إيقاف'}</button></div>${notes.length?'<b>ملخصات جلساتك:</b>'+notes.map(n=>`<div class="card" style="margin:8px 0"><div class="muted">${n.date} · صفحة ${n.page}</div><div class="answer">${fmtAns(n.summary)}</div></div>`).join(''):'<div class="muted">لا ملخصات بعد.</div>'}${(S.journal||[]).some(e=>e.bookId===id)?`<button class="soft" style="width:100%;margin-bottom:6px" onclick="closeSheet();jBook='${id}';go('journal')">📒 دفتر هذا الكتاب (${S.journal.filter(e=>e.bookId===id).length})</button>`:''}<h2>المجلد</h2><div>${[[null,'📚 بدون مجلد'],...(S.folders||[]).map(f=>[f.id,'📁 '+f.name])].map(([fid,l])=>`<span class="chip ${(b.folder||null)===fid?'on':''}" onclick="moveBook('${id}',${fid?`'${fid}'`:'null'})">${esc(l)}</span>`).join('')}<span class="chip" onclick="newFolder('${id}')">＋ مجلد جديد</span></div><div class="row" style="margin-top:14px"><button class="ghost grow" onclick="closeSheet()">إغلاق</button><button class="ghost" style="color:#b44" onclick="delBook('${id}')">حذف الكتاب</button></div>`)}
+function bookMenu(id){const b=S.books.find(x=>x.id===id);const notes=(b.notes||[]).slice(-5).reverse();const on=b.cardsOn!==false;openSheet(`<h2 style="margin-top:0">${esc(b.title)}</h2><div class="card row" style="margin-bottom:12px"><div class="grow"><b>بطاقات المراجعة بعد الجلسة</b><div class="muted">${on?'مفعّلة: 2–3 بطاقات فقط لكل جلسة':'متوقفة: ملخص فقط (مناسب للروايات وقراءة المتعة)'}</div></div><button class="${on?'':'ghost'}" onclick="toggleCards('${id}')">${on?'تشغيل ✓':'إيقاف'}</button></div>${notes.length?'<b>ملخصات جلساتك:</b>'+notes.map(n=>`<div class="card" style="margin:8px 0"><div class="muted">${n.date} · صفحة ${n.page}</div><div class="answer">${fmtAns(n.summary)}</div></div>`).join(''):'<div class="muted">لا ملخصات بعد.</div>'}${(S.journal||[]).some(e=>e.bookId===id)?`<button class="soft" style="width:100%;margin-bottom:6px" onclick="closeSheet();go('journal');openNotebook('${id}')">📒 دفتر هذا الكتاب (${S.journal.filter(e=>e.bookId===id).length})</button>`:''}<h2>المجلد</h2><div>${[[null,'📚 بدون مجلد'],...(S.folders||[]).map(f=>[f.id,'📁 '+f.name])].map(([fid,l])=>`<span class="chip ${(b.folder||null)===fid?'on':''}" onclick="moveBook('${id}',${fid?`'${fid}'`:'null'})">${esc(l)}</span>`).join('')}<span class="chip" onclick="newFolder('${id}')">＋ مجلد جديد</span></div><div class="row" style="margin-top:14px"><button class="ghost grow" onclick="closeSheet()">إغلاق</button><button class="ghost" style="color:#b44" onclick="delBook('${id}')">حذف الكتاب</button></div>`)}
 function delBook(id){openSheet(`<b>حذف الكتاب؟</b><p class="muted">ستبقى بطاقاتك محفوظة.</p><div class="row"><button class="grow" style="background:#b44" onclick="reallyDel('${id}')">احذف</button><button class="ghost grow" onclick="closeSheet()">تراجع</button></div>`)}
 function reallyDel(id){S.books=S.books.filter(b=>b.id!==id);delBlob(id);save();closeSheet();renderHome()}
 
@@ -766,19 +766,43 @@ async function raSkip(){if(!RA)return;RA.skip=true;await stopSpeak();speakStop=f
 const JK={friend:'💬 شرح كصديق',life:'🌱 مثال من الحياة',irab:'✍️ إعراب',ask:'❓ سؤال',debrief:'🗣️ محاورة بعد الجلسة'};
 function addJournal(e){S.journal=S.journal||[];const id=uid();const book=R?.book;const ent={id,kind:e.kind,q:(e.q||'').slice(0,1500),a:e.a||'',chat:e.chat||null,summary:e.summary||'',bookId:book?.id||'',title:book?.title||'',page:book?(book.pos+1):0,date:Date.now(),hasImg:!!e.img};
   if(e.img)putBlob('j_'+id,e.img);S.journal.push(ent);save();return id}
-let jBook='';
-function renderJournal(){const J=(S.journal||[]);const q=($('jSearch').value||'').trim();
-  const books=[...new Map(J.map(e=>[e.bookId,e.title])).entries()];
-  $('jBooks').innerHTML=books.length>1?[['','الكل'],...books].map(([id,t])=>`<span class="chip ${jBook===id?'on':''}" onclick="jBook='${id}';renderJournal()">${esc(t.length>22?t.slice(0,22)+'…':t)}</span>`).join(''):'';
-  let list=J.filter(e=>(!jBook||e.bookId===jBook)&&(!q||(e.q+' '+e.a+' '+e.summary+' '+(e.chat||[]).map(m=>m.t).join(' ')+' '+e.title).includes(q))).slice().reverse();
-  if(!J.length){$('jList').innerHTML='<div class="card" style="text-align:center"><div style="font-size:40px">📒</div><b>دفترك فارغ بعد</b><div class="muted" style="margin-top:6px;line-height:1.8">كل شرح تطلبه وكل سؤال تسأله ومحاورة بعد الجلسة سيُحفظ هنا تلقائيًا.</div></div>';return}
-  if(!list.length){$('jList').innerHTML='<div class="muted">لا نتائج.</div>';return}
-  let lastDay='';$('jList').innerHTML=list.map(e=>{const d=new Date(e.date);const day=d.toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});const head=day!==lastDay?`<div class="muted" style="margin:16px 4px 8px;font-weight:700">${day}</div>`:'';lastDay=day;
-    const body=e.kind==='debrief'?`${(e.chat||[]).map(m=>`<div class="msg ${m.w==='u'?'u':'a'}" style="max-width:100%;margin:6px 0">${m.w==='u'?esc(m.t):fmtAns(m.t)}</div>`).join('')}${e.summary?`<div style="margin-top:8px"><b>📝 الخلاصة:</b><div class="answer">${fmtAns(e.summary)}</div></div>`:''}`
-      :`${e.hasImg?`<img class="thumb" data-jimg="${e.id}">`:''}${e.q?`<div style="font-family:Amiri;font-size:18px;margin-bottom:8px;color:var(--muted)">«${esc(e.q)}»</div>`:''}<div class="answer" id="ja_${e.id}">${fmtAns(e.a)}</div>`;
-    return head+`<div class="card" style="margin-bottom:10px"><div class="row" style="margin-bottom:8px"><span class="chip" style="margin:0;padding:3px 10px;font-size:12px">${JK[e.kind]||'💬'}</span><span class="muted grow" style="font-size:12px">${esc(e.title)}${e.page?' · ص '+e.page:''} · ${d.toLocaleTimeString('ar-EG',{hour:'numeric',minute:'2-digit'})}</span></div>${body}
-    <div class="row wrap" style="margin-top:10px;gap:6px">${e.kind!=='debrief'?`<button class="ghost" style="padding:7px 10px;font-size:13px" onclick="speak($('ja_${e.id}').innerText,this)">🔊 اقرأها لي</button><button class="ghost" style="padding:7px 10px;font-size:13px" onclick="journalCard('${e.id}')">🗂️ اجعلها بطاقة</button>`:''}<button class="ghost" style="padding:7px 10px;font-size:13px" onclick="copyJournal('${e.id}')">📋 نسخ</button><button class="ghost" style="padding:7px 10px;font-size:13px;color:#b44" onclick="delJournal('${e.id}')">حذف</button></div></div>`}).join('');
-  document.querySelectorAll('img[data-jimg]').forEach(async im=>{const d=await getBlob('j_'+im.dataset.jimg);if(d)im.src=d;else im.remove()})}
+let jBook='',jSort='date',jKind='';
+const jTitle=e=>(S.books.find(b=>b.id===e.bookId)?.title)||e.title||'بدون كتاب';
+function openNotebook(id){jBook=id;jKind='';$('jSearch').value='';renderJournal();window.scrollTo(0,0)}
+function entryHTML(e,showBook){const d=new Date(e.date);
+  const body=e.kind==='debrief'?`${(e.chat||[]).map(m=>`<div class="msg ${m.w==='u'?'u':'a'}" style="max-width:100%;margin:6px 0">${m.w==='u'?esc(m.t):fmtAns(m.t)}</div>`).join('')}${e.summary?`<div style="margin-top:8px"><b>📝 الخلاصة:</b><div class="answer">${fmtAns(e.summary)}</div></div>`:''}`
+    :`${e.hasImg?`<img class="thumb" data-jimg="${e.id}">`:''}${e.q?`<div style="font-family:Amiri;font-size:18px;margin-bottom:8px;color:var(--muted)">«${esc(e.q)}»</div>`:''}<div class="answer" id="ja_${e.id}">${fmtAns(e.a)}</div>`;
+  return `<div class="card" style="margin-bottom:10px"><div class="row" style="margin-bottom:8px"><span class="chip" style="margin:0;padding:3px 10px;font-size:12px">${JK[e.kind]||'💬'}</span><span class="muted grow" style="font-size:12px">${showBook?esc(jTitle(e))+' · ':''}${e.page?'ص '+e.page+' · ':''}${d.toLocaleDateString('ar-EG',{day:'numeric',month:'short'})} ${d.toLocaleTimeString('ar-EG',{hour:'numeric',minute:'2-digit'})}</span></div>${body}
+  <div class="row wrap" style="margin-top:10px;gap:6px">${e.kind!=='debrief'?`<button class="ghost" style="padding:7px 10px;font-size:13px" onclick="speak($('ja_${e.id}').innerText,this)">🔊 اقرأها لي</button><button class="ghost" style="padding:7px 10px;font-size:13px" onclick="journalCard('${e.id}')">🗂️ اجعلها بطاقة</button>`:''}<button class="ghost" style="padding:7px 10px;font-size:13px" onclick="copyJournal('${e.id}')">📋 نسخ</button><button class="ghost" style="padding:7px 10px;font-size:13px;color:#b44" onclick="delJournal('${e.id}')">حذف</button></div></div>`}
+function loadJImgs(){document.querySelectorAll('img[data-jimg]').forEach(async im=>{const d=await getBlob('j_'+im.dataset.jimg);if(d)im.src=d;else im.remove()})}
+function renderJournal(){const J=(S.journal||[]);const q=($('jSearch').value||'').trim();const L=$('jList'),H=$('jBooks');
+  if(!J.length){H.innerHTML='';L.innerHTML='<div class="card" style="text-align:center"><div style="font-size:40px">📒</div><b>دفترك فارغ بعد</b><div class="muted" style="margin-top:6px;line-height:1.8">كل شرح تطلبه وكل سؤال تسأله ومحاورة بعد الجلسة سيُحفظ هنا تلقائيًا، في دفتر خاص بكل كتاب.</div></div>';return}
+  const match=e=>!q||(e.q+' '+e.a+' '+e.summary+' '+(e.chat||[]).map(m=>m.t).join(' ')+' '+jTitle(e)).includes(q);
+  // ---- inside one book's notebook
+  if(jBook){
+    const all=J.filter(e=>e.bookId===jBook);const title=all[0]?jTitle(all[0]):'';
+    const kinds=[...new Set(all.map(e=>e.kind))];
+    H.innerHTML=`<div class="row" style="margin:6px 0 4px"><button class="ghost" style="padding:8px 12px;font-size:14px" onclick="openNotebook('')">→ كل الدفاتر</button><b class="grow" style="font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📓 ${esc(title)}</b><button class="ghost" style="padding:8px 10px;font-size:13px" onclick="copyNotebook()">📋 نسخ الدفتر</button></div>
+      <div>${[['','الكل'],...kinds.map(k=>[k,JK[k]||k])].map(([k,l])=>`<span class="chip ${jKind===k?'on':''}" onclick="jKind='${k}';renderJournal()">${l} ${k?`(${all.filter(e=>e.kind===k).length})`:`(${all.length})`}</span>`).join('')}</div>
+      <div style="margin-top:2px"><span class="muted" style="font-size:13px">ترتيب: </span>${[['date','📅 الأحدث'],['page','📄 حسب الصفحة']].map(([k,l])=>`<span class="chip ${jSort===k?'on':''}" style="padding:5px 12px;font-size:13px" onclick="jSort='${k}';renderJournal()">${l}</span>`).join('')}</div>`;
+    let list=all.filter(e=>(!jKind||e.kind===jKind)&&match(e));
+    if(!list.length){L.innerHTML='<div class="muted">لا شيء هنا.</div>';return}
+    list=jSort==='page'?list.slice().sort((a,b)=>(a.page-b.page)||(a.date-b.date)):list.slice().reverse();
+    let last=null;L.innerHTML=list.map(e=>{let head='';
+      if(jSort==='page'){const k=e.page||0;if(k!==last){head=`<div class="muted" style="margin:16px 4px 8px;font-weight:700">📄 صفحة ${k||'—'}</div>`;last=k}}
+      else{const day=new Date(e.date).toLocaleDateString('ar-EG',{weekday:'long',day:'numeric',month:'long'});if(day!==last){head=`<div class="muted" style="margin:16px 4px 8px;font-weight:700">${day}</div>`;last=day}}
+      return head+entryHTML(e,false)}).join('');loadJImgs();return}
+  // ---- search across all notebooks
+  if(q){H.innerHTML='';const list=J.filter(match).slice().reverse();L.innerHTML=list.length?`<div class="muted" style="margin:6px 4px">${list.length} نتيجة في كل الدفاتر</div>`+list.map(e=>entryHTML(e,true)).join(''):'<div class="muted">لا نتائج.</div>';loadJImgs();return}
+  // ---- index: one notebook per book, grouped by library folder
+  H.innerHTML='';
+  const byBook=new Map();J.forEach(e=>{const k=e.bookId||'_';if(!byBook.has(k))byBook.set(k,[]);byBook.get(k).push(e)});
+  const groups=new Map();
+  [...byBook.entries()].sort((a,b)=>Math.max(...b[1].map(e=>e.date))-Math.max(...a[1].map(e=>e.date))).forEach(([bid,es])=>{const bk=S.books.find(b=>b.id===bid);const g=bk?(bk.folder?('📁 '+folderName(bk.folder)):'📚 المكتبة'):'🗃️ كتب محذوفة';if(!groups.has(g))groups.set(g,[]);groups.get(g).push([bid,es])});
+  L.innerHTML=[...groups.entries()].map(([g,items])=>`${groups.size>1?`<div class="muted" style="margin:16px 4px 8px;font-weight:700">${esc(g)}</div>`:''}<div class="fgrid">${items.map(([bid,es])=>{const last=new Date(Math.max(...es.map(e=>e.date)));const c=k=>es.filter(e=>e.kind===k).length;const ex=c('friend')+c('life')+c('irab'),as=c('ask'),db=c('debrief');
+    return `<div class="folder" onclick="openNotebook('${bid}')"><div style="font-size:28px">📓</div><div class="t">${esc(jTitle(es[0]))}</div><div class="muted" style="font-size:12px;line-height:1.7">${es.length} مدخل${ex?` · 💬${ex}`:''}${as?` · ❓${as}`:''}${db?` · 🗣️${db}`:''}<br>آخر نقاش: ${last.toLocaleDateString('ar-EG',{day:'numeric',month:'short'})}</div></div>`}).join('')}</div>`).join('');
+}
+async function copyNotebook(){const es=(S.journal||[]).filter(e=>e.bookId===jBook).sort((a,b)=>(a.page-b.page)||(a.date-b.date));if(!es.length)return;const t='📓 '+jTitle(es[0])+'\n\n'+es.map(e=>`— ${JK[e.kind]||''}${e.page?' · ص '+e.page:''}\n${journalText(e)}`).join('\n\n');try{await navigator.clipboard.writeText(t);toast('نُسخ الدفتر كاملًا ✓ الصقه في ملاحظاتك أو مستند')}catch(_){openSheet(`<textarea style="min-height:300px">${esc(t)}</textarea>`)}}
 function journalText(e){return e.kind==='debrief'?((e.chat||[]).map(m=>(m.w==='u'?'أنا: ':name()+': ')+m.t).join('\n')+(e.summary?'\n\nالخلاصة: '+e.summary:'')):((e.q?('«'+e.q+'»\n'):'')+e.a)}
 async function copyJournal(id){const e=S.journal.find(x=>x.id===id);const t=`${e.title}${e.page?' — ص '+e.page:''}\n${journalText(e)}`;try{await navigator.clipboard.writeText(t);toast('نُسخ ✓')}catch(_){openSheet(`<textarea style="min-height:260px">${esc(t)}</textarea>`)}}
 function delJournal(id){S.journal=S.journal.filter(x=>x.id!==id);delBlob('j_'+id);save();renderJournal();toast('حُذف من الدفتر')}
@@ -816,6 +840,7 @@ window.addEventListener('popstate',()=>{history.pushState({s:'guard'},'');
   if(selMode)return toggleSelect();
   if($('reader').classList.contains('on'))return askEnd();
   if($('debrief').classList.contains('on'))return;
+  if($('journal').classList.contains('on')&&jBook)return openNotebook('');
   if(!$('home').classList.contains('on'))return go('home');
   if(curFolder)return openFolder(null);
   toast('أنت في المكتبة 📚');});
