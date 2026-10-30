@@ -287,17 +287,46 @@ const STTn=plug('SpeechRecognition');
 let speakingBtn=null;
 function speechText(t){return String(t).replace(/\*\*/g,'').replace(/[#*_`>]/g,'').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').replace(/\s+\n/g,'\n').trim()}
 function setSpeakBtn(b,on){if(!b)return;b.textContent=on?'⏹️ إيقاف القراءة':'🔊 اقرأها لي'}
-async function stopSpeak(){try{if(TTSn)await TTSn.stop();else speechSynthesis?.cancel()}catch(e){}setSpeakBtn(speakingBtn,false);speakingBtn=null}
+async function stopSpeak(){speakStop=true;try{if(gAudio){gAudio.pause();gAudio=null}if(TTSn)await TTSn.stop();else speechSynthesis?.cancel()}catch(e){}if(speakingBtn)setSpeakBtn(speakingBtn,false);speakingBtn=null}
+let arTag=null,speakStop=false,gAudio=null;
+async function findArabicTag(){
+  if(arTag)return arTag;
+  try{const r=await TTSn.getSupportedLanguages();const l=(r.languages||[]).find(x=>/^ar/i.test(x));if(l){arTag=l;return l}}catch(e){}
+  for(const t of ['ar','ar-XA','ar-SA','ar-EG']){try{const r=await TTSn.isLanguageSupported({lang:t});if(r.supported){arTag=t;return t}}catch(e){}}
+  return null;
+}
+function chunks(t,max=1200){const parts=t.split(/(?<=[\.\!\?؟۔\n،:])\s+/);const out=[];let cur='';for(const p of parts){if((cur+' '+p).length>max&&cur){out.push(cur);cur=p}else cur=cur?cur+' '+p:p}if(cur)out.push(cur);return out}
+/* fallback: Gemini voice when the phone has no Arabic voice */
+function pcmToWav(b64,rate=24000){const bin=atob(b64);const n=bin.length;const buf=new ArrayBuffer(44+n);const v=new DataView(buf);const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,rate,true);v.setUint32(28,rate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n,true);
+  const u8=new Uint8Array(buf,44);for(let i=0;i<n;i++)u8[i]=bin.charCodeAt(i);return new Blob([buf],{type:'audio/wav'})}
+async function geminiSpeak(t){
+  if(!S.settings.key)throw new Error('NOVOICE');
+  for(const model of ['gemini-3.8-flash-tts','gemini-2.5-flash-preview-tts']){
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':S.settings.key},
+      body:JSON.stringify({contents:[{parts:[{text:'اقرأ بصوت دافئ هادئ وبفصحى واضحة: '+t.slice(0,3000)}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:'Charon'}}}}})});
+    const d=await r.json().catch(()=>({}));if(!r.ok)continue;
+    const part=(d.candidates?.[0]?.content?.parts||[]).find(p=>p.inlineData||p.inline_data);const id=part&&(part.inlineData||part.inline_data);if(!id)continue;
+    const m=/rate=(\d+)/.exec(id.mimeType||id.mime_type||'');const url=URL.createObjectURL(pcmToWav(id.data,m?+m[1]:24000));
+    if(speakStop)return;gAudio=new Audio(url);gAudio.playbackRate=S.settings.rate||0.95;await new Promise(res=>{gAudio.onended=gAudio.onerror=res;gAudio.play().catch(res)});gAudio=null;return;
+  }
+  throw new Error('GEMINI_TTS');
+}
 async function speak(text,btn){
-  if(speakingBtn){const same=speakingBtn===btn;await stopSpeak();if(same)return}
-  const t=speechText(text);if(!t)return;speakingBtn=btn;setSpeakBtn(btn,true);
+  if(speakingBtn!==null||gAudio){const same=speakingBtn===btn;await stopSpeak();if(same&&btn)return}
+  const t=speechText(text);if(!t)return;speakingBtn=btn||0;setSpeakBtn(btn,true);speakStop=false;
   const rate=S.settings.rate||0.95;
   try{
-    if(TTSn){await TTSn.speak({text:t,lang:'ar-SA',rate,pitch:1.0,volume:1.0,category:'playback'});}
+    if(TTSn){
+      const tag=await findArabicTag();
+      if(tag){for(const c of chunks(t)){if(speakStop)break;await TTSn.speak({text:c,lang:tag,rate,pitch:1.0,volume:1.0,category:'playback'})}}
+      else { if(!S.voiceHint){S.voiceHint=1;save();toast('هاتفك بلا صوت عربي — سأقرأ بصوت Gemini الآن. لصوت مجاني بلا إنترنت: الإعدادات ← «تحميل الصوت العربي»',7000)} await geminiSpeak(t); }
+    }
     else if(window.speechSynthesis){await new Promise((res)=>{const u=new SpeechSynthesisUtterance(t);u.lang='ar-SA';u.rate=rate;const v=speechSynthesis.getVoices().find(v=>/^ar/i.test(v.lang));if(v)u.voice=v;u.onend=u.onerror=res;speechSynthesis.speak(u)})}
-    else toast('القراءة الصوتية غير متاحة هنا');
-  }catch(e){toast('تعذّرت القراءة الصوتية. ثبّت «خدمات التحويل من نص إلى كلام» من جوجل وأضف اللغة العربية',5000)}
-  if(speakingBtn===btn){setSpeakBtn(btn,false);speakingBtn=null}
+    else await geminiSpeak(t);
+  }catch(e){ if(e.message==='NOVOICE')openSheet(`<b>لا يوجد صوت عربي على هاتفك بعد 🔈</b><p class="muted" style="line-height:1.8">حمّل الصوت العربي المجاني من جوجل (مرة واحدة، ويعمل بلا إنترنت).</p><button style="width:100%" onclick="closeSheet();openVoiceInstall()">⬇️ تحميل الصوت العربي</button>`);
+    else toast('تعذّرت القراءة الصوتية: '+(e.message||'').slice(0,80),6000) }
+  if(speakingBtn===(btn||0)){setSpeakBtn(btn,false);speakingBtn=null}
 }
 function speakBtnHTML(id){return `<button class="ghost" style="padding:10px 12px" onclick="speak(document.getElementById('${id}').innerText,this)">🔊 اقرأها لي</button>`}
 function autoSpeak(id){if(S.settings.autoRead){const el=$(id);const b=el?.parentElement?.querySelector('button[onclick^="speak"]');if(el)speak(el.innerText,b)}}
@@ -315,7 +344,7 @@ async function dictate(targetId,btn){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return toast('الميكروفون غير متاح هنا');
   try{const rec=new SR();rec.lang='ar-EG';rec.interimResults=true;const base=ta.value?ta.value+' ':'';if(btn)btn.textContent='⏺️';rec.onresult=e=>{ta.value=base+[...e.results].map(r=>r[0].transcript).join(' ')};rec.onend=()=>{if(btn)btn.textContent='🎙️'};rec.onerror=()=>{if(btn)btn.textContent='🎙️';toast('الميكروفون غير متاح هنا')};rec.start()}catch(e){toast('الميكروفون غير متاح')}
 }
-async function checkArabicVoice(){const el=$('voiceStatus');if(!el||!TTSn)return;try{const r=await TTSn.isLanguageSupported({lang:'ar-SA'});el.textContent=r.supported?'✓ الصوت العربي متاح على هاتفك':'⚠️ الصوت العربي غير مُثبّت بعد — اضغط «تحميل الصوت العربي»'}catch(e){el.textContent=''}}
+async function checkArabicVoice(){const el=$('voiceStatus');if(!el||!TTSn)return;try{const tg=await findArabicTag();el.textContent=tg?'✓ الصوت العربي متاح على هاتفك':'⚠️ الصوت العربي غير مُثبّت بعد — اضغط «تحميل الصوت العربي»'}catch(e){el.textContent=''}}
 async function openVoiceInstall(){if(!TTSn)return toast('هذه الميزة داخل التطبيق فقط');try{await TTSn.openInstall();toast('اختر «العربية» ثم اضغط ⬇️',4000)}catch(e){toast('افتح إعدادات الهاتف ← تحويل النص إلى كلام ← ⚙️ بجانب Google ← تثبيت بيانات الصوت',7000)}}
 const micOK=()=>!!(STTn||window.SpeechRecognition||window.webkitSpeechRecognition);
 
@@ -355,7 +384,7 @@ function go(s){
   window.scrollTo(0,0);
 }
 function openSheet(html){$('sheet').innerHTML=html;$('sheetBg').classList.add('on')}
-function closeSheet(){$('sheetBg').classList.remove('on');if(speakingBtn)stopSpeak()}
+function closeSheet(){$('sheetBg').classList.remove('on');if(speakingBtn!==null||gAudio)stopSpeak()}
 
 /* ================= Gemini ================= */
 function persona(){
