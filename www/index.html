@@ -189,7 +189,7 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
   <div class="mini-anis" onclick="openAsk()"><div id="readAnis"></div><span class="here">أنا هنا</span></div>
   <div class="rbottom">
     <button class="nav" onclick="turn(1)">‹ التالية</button>
-    <span class="pageno" id="pageNo"></span>
+    <button class="pageno ghost" id="pageNo" onclick="openJump()" style="padding:10px 14px"></button>
     <button class="nav" onclick="turn(-1)">السابقة ›</button>
   </div>
   <div class="actbar" id="actbar">
@@ -211,7 +211,7 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
     <button class="ghost" onclick="skipDebrief()">تخطَّ</button>
   </div>
   <div class="composer" id="composer">
-    <button class="ghost" id="micBtn" onclick="dictate()" style="display:none">🎙️</button>
+    <button class="ghost" id="micBtn" onclick="dictate('chatIn',this)" style="display:none">🎙️</button>
     <textarea id="chatIn" placeholder="اشرح لأنيس بأسلوبك…"></textarea>
     <button onclick="sendChat()">إرسال</button>
   </div>
@@ -237,6 +237,10 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
   <div class="muted" style="margin-top:6px">الافتراضي gemini-flash-latest (أحدث Flash تلقائيًا).</div>
   <h2>أسلوب الشرح</h2>
   <div id="styleChips"></div>
+  <h2>صوت أنيس</h2>
+  <div id="voiceChips"></div>
+  <div class="row" style="margin-top:8px"><span class="muted">سرعة القراءة</span><input id="rateIn" type="range" min="0.6" max="1.4" step="0.05" class="grow" oninput="S.settings.rate=+this.value;save()"></div>
+  <button class="ghost" style="margin-top:8px" onclick="speak('أهلًا بك، أنا أنيس. سأقرأ لك الشروح بهذا الصوت.',this)">🔊 جرّب الصوت</button>
   <h2>اسم رفيقك</h2>
   <input id="nameIn" placeholder="أنيس">
   <div class="row" style="margin-top:18px">
@@ -266,6 +270,43 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
 </div>
 
 <script>
+/* ================= voice: read aloud + dictation ================= */
+const CAP=window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform();
+const TTSn=CAP?Capacitor.registerPlugin('TextToSpeech'):null;
+const STTn=CAP?Capacitor.registerPlugin('SpeechRecognition'):null;
+let speakingBtn=null;
+function speechText(t){return String(t).replace(/\*\*/g,'').replace(/[#*_`>]/g,'').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').replace(/\s+\n/g,'\n').trim()}
+function setSpeakBtn(b,on){if(!b)return;b.textContent=on?'⏹️ إيقاف القراءة':'🔊 اقرأها لي'}
+async function stopSpeak(){try{if(TTSn)await TTSn.stop();else speechSynthesis?.cancel()}catch(e){}setSpeakBtn(speakingBtn,false);speakingBtn=null}
+async function speak(text,btn){
+  if(speakingBtn){const same=speakingBtn===btn;await stopSpeak();if(same)return}
+  const t=speechText(text);if(!t)return;speakingBtn=btn;setSpeakBtn(btn,true);
+  const rate=S.settings.rate||0.95;
+  try{
+    if(TTSn){await TTSn.speak({text:t,lang:'ar-SA',rate,pitch:1.0,volume:1.0,category:'playback'});}
+    else if(window.speechSynthesis){await new Promise((res)=>{const u=new SpeechSynthesisUtterance(t);u.lang='ar-SA';u.rate=rate;const v=speechSynthesis.getVoices().find(v=>/^ar/i.test(v.lang));if(v)u.voice=v;u.onend=u.onerror=res;speechSynthesis.speak(u)})}
+    else toast('القراءة الصوتية غير متاحة هنا');
+  }catch(e){toast('تعذّرت القراءة الصوتية. ثبّت «خدمات التحويل من نص إلى كلام» من جوجل وأضف اللغة العربية',5000)}
+  if(speakingBtn===btn){setSpeakBtn(btn,false);speakingBtn=null}
+}
+function speakBtnHTML(id){return `<button class="ghost" style="padding:10px 12px" onclick="speak(document.getElementById('${id}').innerText,this)">🔊 اقرأها لي</button>`}
+function autoSpeak(id){if(S.settings.autoRead){const el=$(id);const b=el?.parentElement?.querySelector('button[onclick^="speak"]');if(el)speak(el.innerText,b)}}
+async function dictate(targetId,btn){
+  const ta=$(targetId);if(!ta)return;
+  if(STTn){
+    try{let p=await STTn.checkPermissions();if(p.speechRecognition!=='granted'){p=await STTn.requestPermissions();if(p.speechRecognition!=='granted')return toast('اسمح للتطبيق باستخدام الميكروفون من الإعدادات')}
+      const av=await STTn.available();if(!av.available)return toast('التعرّف على الكلام غير متاح على هذا الهاتف (ثبّت تطبيق Google)');
+      if(btn)btn.textContent='⏺️';
+      const r=await STTn.start({language:'ar-EG',maxResults:1,prompt:'تكلّم… أنيس يسمعك',partialResults:false,popup:true});
+      const m=(r&&r.matches&&r.matches[0])||'';if(m)ta.value=(ta.value?ta.value+' ':'')+m;
+    }catch(e){if(!/cancel|No match/i.test(e.message||''))toast('لم أسمع جيدًا، جرّب مرة أخرى')}
+    if(btn)btn.textContent='🎙️';return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return toast('الميكروفون غير متاح هنا');
+  try{const rec=new SR();rec.lang='ar-EG';rec.interimResults=true;const base=ta.value?ta.value+' ':'';if(btn)btn.textContent='⏺️';rec.onresult=e=>{ta.value=base+[...e.results].map(r=>r[0].transcript).join(' ')};rec.onend=()=>{if(btn)btn.textContent='🎙️'};rec.onerror=()=>{if(btn)btn.textContent='🎙️';toast('الميكروفون غير متاح هنا')};rec.start()}catch(e){toast('الميكروفون غير متاح')}
+}
+const micOK=()=>!!(STTn||window.SpeechRecognition||window.webkitSpeechRecognition);
+
 /* ================= storage ================= */
 const LS='anis_v1';
 let S={books:[],cards:[],sessions:[],settings:{key:'',model:'gemini-flash-latest',style:'fusha',name:'أنيس'}};
@@ -302,7 +343,7 @@ function go(s){
   window.scrollTo(0,0);
 }
 function openSheet(html){$('sheet').innerHTML=html;$('sheetBg').classList.add('on')}
-function closeSheet(){$('sheetBg').classList.remove('on')}
+function closeSheet(){$('sheetBg').classList.remove('on');if(speakingBtn)stopSpeak()}
 
 /* ================= Gemini ================= */
 function persona(){
@@ -445,6 +486,10 @@ async function showPage(){
   if(!keepScroll)window.scrollTo({top:0,behavior:'smooth'}); keepScroll=false;
 }
 let keepScroll=false;
+function openJump(){const b=R.book;openSheet(`<h2 style="margin-top:0">اذهب إلى صفحة</h2><div class="muted">من 1 إلى ${b.total} · أنت الآن في ${b.pos+1}</div><input id="jumpIn" type="number" inputmode="numeric" min="1" max="${b.total}" style="margin-top:10px;font-size:22px;text-align:center" placeholder="${b.pos+1}" onkeydown="if(event.key==='Enter')doJump()"><div class="row" style="margin-top:12px"><button class="grow" onclick="doJump()">اذهب</button><button class="ghost" onclick="closeSheet()">إلغاء</button></div>`);setTimeout(()=>$('jumpIn')?.focus(),200)}
+async function doJump(){const b=R.book;const n=parseInt($('jumpIn').value,10);if(!n||n<1||n>b.total)return toast('اكتب رقمًا من 1 إلى '+b.total);closeSheet();if(n-1===b.pos)return;
+  if(b.type==='pdf'){R.pageImgs[b.pos]=pageImage(900);const ks=Object.keys(R.pageImgs);if(ks.length>4)delete R.pageImgs[ks[0]]}
+  b.pos=n-1;save();flipSound();await showPage();toast('صفحة '+n,1200)}
 async function zoomBy(d,abs){ if(!R)return; showChrome();
   if(R.book.type==='pdf'){ const z=abs!=null?abs:(S.zoom||1)+d*0.25; S.zoom=Math.round(Math.min(3,Math.max(1,z))*100)/100; toast('التكبير '+Math.round(S.zoom*100)+'%',1200); }
   else { const f=abs!=null?abs:(S.fs||22)+d*2; S.fs=Math.round(Math.min(40,Math.max(16,f))); toast('حجم الخط '+S.fs,1200); }
@@ -513,14 +558,14 @@ async function aiAct(kind){
     const out=await gemini([{role:'user',parts:selParts(P)}],{json:kind==='card'}); mood();
     R.selections.push({kind,text:cur.kind==='text'?cur.data:'(مقطع مصوّر)',out:out.slice(0,600)});
     if(kind==='card'||kind==='tarkib'){const c=pj(out);const a=kind==='tarkib'&&c.use?`${c.a}\n\nمثال لاستعماله: ${c.use}`:c.a;addCard(c.q,a,null,kind==='tarkib'?'tarkib':'fahm');openSheet(`<b>${kind==='tarkib'?'✨ حُفظ التركيب':'🗂️ حُفظت البطاقة'}</b><div class="card" style="margin:10px 0"><div>${esc(c.q)}</div><div class="muted answer" style="margin-top:6px">${esc(a)}</div></div><button style="width:100%" onclick="closeSheet()">أكمل القراءة</button>`)}
-    else openSheet(`<div class="hero">${anisSVG()}<b>${name()}</b></div><div style="margin-top:10px">${thumb}</div><div class="answer">${fmtAns(out)}</div><div class="row" style="margin-top:14px"><button class="grow" onclick="closeSheet()">فهمت، أكمل 📖</button><button class="ghost" onclick="simpler()">بسّطها أكثر</button></div>`);
+    else openSheet(`<div class="hero">${anisSVG()}<b>${name()}</b></div><div style="margin-top:10px">${thumb}</div><div class="answer" id="ansTxt">${fmtAns(out)}</div><div class="row wrap" style="margin-top:14px;gap:8px"><button class="grow" onclick="closeSheet()">فهمت، أكمل 📖</button><button class="ghost" onclick="simpler()">بسّطها أكثر</button>${speakBtnHTML('ansTxt')}</div>`);autoSpeak('ansTxt');
     R.lastQ={parts:selParts(P),out};
   }catch(e){closeSheet();aiErr(e)}
   clearSel(); if(selMode)toggleSelect();
 }
-async function simpler(){if(!R.lastQ)return;mood('thinking');$('sheet').querySelector('.answer').innerHTML='<span class="dots">لحظة</span>';try{const out=await gemini([{role:'user',parts:R.lastQ.parts},{role:'model',parts:[{text:R.lastQ.out}]},{role:'user',parts:[{text:'لم تتضح لي بعد. بسّطها أكثر جدًا كأني طالب في الإعدادية، بتشبيه واحد.'}]}]);R.lastQ.out=out;mood();$('sheet').querySelector('.answer').innerHTML=fmtAns(out)}catch(e){aiErr(e)}}
-function openAsk(){openSheet(`<div class="hero">${anisSVG()}<div class="bubble grow">نعم؟ أنا معك. اسألني عن هذه الصفحة 🙂</div></div><textarea id="askIn" style="margin-top:12px" placeholder="مثلًا: ماذا يقصد الكاتب بـ…؟"></textarea><div class="row" style="margin-top:10px"><button class="grow" onclick="askPage()">اسأل</button><button class="ghost" onclick="closeSheet()">عودة للقراءة</button></div><div id="askOut" class="answer" style="margin-top:12px"></div>`);setTimeout(()=>$('askIn')?.focus(),200)}
-async function askPage(){const q=$('askIn').value.trim();if(!q)return;const b=R.book;const parts=[{text:`سؤالي عن الصفحة التي أقرؤها الآن (أجب باختصار ثم أعدني للقراءة بلطف): ${q}`}];if(b.type==='pdf')parts.push(imgPart(pageImage()));else parts.push({text:'نص الصفحة:\n'+R.pageTexts[b.pos]});$('askOut').innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');try{const out=await gemini([{role:'user',parts}]);mood();$('askOut').innerHTML=fmtAns(out);R.selections.push({kind:'ask',text:q,out:out.slice(0,600)})}catch(e){$('askOut').innerHTML='';aiErr(e)}}
+async function simpler(){if(!R.lastQ)return;mood('thinking');$('sheet').querySelector('.answer').innerHTML='<span class="dots">لحظة</span>';try{const out=await gemini([{role:'user',parts:R.lastQ.parts},{role:'model',parts:[{text:R.lastQ.out}]},{role:'user',parts:[{text:'لم تتضح لي بعد. بسّطها أكثر جدًا كأني طالب في الإعدادية، بتشبيه واحد.'}]}]);R.lastQ.out=out;mood();$('sheet').querySelector('.answer').innerHTML=fmtAns(out);autoSpeak('ansTxt')}catch(e){aiErr(e)}}
+function openAsk(){openSheet(`<div class="hero">${anisSVG()}<div class="bubble grow">نعم؟ أنا معك. اسألني عن هذه الصفحة 🙂</div></div><textarea id="askIn" style="margin-top:12px" placeholder="اكتب سؤالك أو اضغط 🎙️ وتكلّم…"></textarea><div class="row" style="margin-top:10px">${micOK()?`<button class="ghost" onclick="dictate('askIn',this)">🎙️</button>`:''}<button class="grow" onclick="askPage()">اسأل</button><button class="ghost" onclick="closeSheet()">عودة</button></div><div id="askOut" class="answer" style="margin-top:12px"></div><div id="askSpk" style="margin-top:8px"></div>`)}
+async function askPage(){const q=$('askIn').value.trim();if(!q)return;const b=R.book;const parts=[{text:`سؤالي عن الصفحة التي أقرؤها الآن (أجب باختصار ثم أعدني للقراءة بلطف): ${q}`}];if(b.type==='pdf')parts.push(imgPart(pageImage()));else parts.push({text:'نص الصفحة:\n'+R.pageTexts[b.pos]});$('askOut').innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');try{const out=await gemini([{role:'user',parts}]);mood();$('askOut').innerHTML=fmtAns(out);$('askSpk').innerHTML=speakBtnHTML('askOut');autoSpeak('askOut');R.selections.push({kind:'ask',text:q,out:out.slice(0,600)})}catch(e){$('askOut').innerHTML='';aiErr(e)}}
 
 /* ================= debrief (Feynman) ================= */
 function contextParts(){const parts=[];const b=R.book;if(b.type==='pdf'){if(!R.pageImgs[b.pos])R.pageImgs[b.pos]=pageImage(900);Object.values(R.pageImgs).slice(-4).forEach(d=>parts.push(imgPart(d)))}else{const t=[...R.pagesSeen].sort((a,b)=>a-b).map(i=>R.pageTexts[i]).filter(Boolean).join('\n\n');parts.push({text:'ما قرأه في هذه الجلسة:\n'+t.slice(-9000)})}
@@ -535,15 +580,15 @@ function toDebrief(){
   R.chat=[]; $('chat').innerHTML='';
   const first=`أغلقنا الكتاب ☕ والآن دوري أن أتعلم منك! تخيّل أني صديقك ولم أقرأ هذه الصفحات: اشرح لي بأسلوبك أهم فكرة خرجتَ بها اليوم.`;
   addMsg('a',first); R.chat.push({role:'model',parts:[{text:first}]});
-  $('micBtn').style.display=(window.SpeechRecognition||window.webkitSpeechRecognition)?'inline-block':'none';
+  $('micBtn').style.display=micOK()?'inline-block':'none';
 }
-function addMsg(who,t){const d=document.createElement('div');d.className='msg '+who;d.innerHTML=who==='a'?fmtAns(t):esc(t);$('chat').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});return d}
+let msgN=0;function addMsg(who,t){const d=document.createElement('div');d.className='msg '+who;d.innerHTML=who==='a'?fmtAns(t):esc(t);if(who==='a'){d.id='m'+(++msgN);d.addEventListener('click',()=>speak(d.innerText,null))}$('chat').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});return d}
 async function sendChat(){const t=$('chatIn').value.trim();if(!t)return;$('chatIn').value='';addMsg('u',t);R.chat.push({role:'user',parts:[{text:t}]});
   const turns=R.chat.filter(m=>m.role==='user').length;
   if(!S.settings.key){const fb=['جميل! وما المثال الذي يوضح هذه الفكرة؟','وهل تتفق مع الكاتب؟ لماذا؟','رائع. لو أردت أن تطبّق هذه الفكرة غدًا، ماذا ستفعل؟'][Math.min(turns-1,2)];addMsg('a',fb);R.chat.push({role:'model',parts:[{text:fb}]});return}
   const w=addMsg('a','');w.innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');
   try{const contents=[{role:'user',parts:[...contextParts(),{text:'(هذا ما قرأتُه. ابدأ المحاورة.)'}]},{role:'model',parts:[{text:'حسنًا.'}]},...R.chat];
-    let out=await gemini(contents,{system:debSystem()+(turns>=4?'\nهذه آخر جولة: اختم بتشجيع واقترح عليه الضغط على «لخّص وأنشئ البطاقات».':'')});mood();w.innerHTML=fmtAns(out);R.chat.push({role:'model',parts:[{text:out}]})}
+    let out=await gemini(contents,{system:debSystem()+(turns>=4?'\nهذه آخر جولة: اختم بتشجيع واقترح عليه الضغط على «لخّص وأنشئ البطاقات».':'')});mood();w.innerHTML=fmtAns(out);R.chat.push({role:'model',parts:[{text:out}]});if(S.settings.autoRead)speak(w.innerText,null)}
   catch(e){w.remove();R.chat.pop();aiErr(e)}}
 async function finishDebrief(){
   const b=R.book;const userTalk=R.chat.filter(m=>m.role==='user').map(m=>m.parts[0].text).join('\n');
@@ -556,7 +601,6 @@ async function finishDebrief(){
   }catch(e){$('debBtns').innerHTML='<button class="soft grow" onclick="finishDebrief()">إعادة المحاولة</button><button class="ghost" onclick="skipDebrief()">تخطَّ</button>';aiErr(e)}}
 function skipDebrief(){endAll()}
 function endAll(msg){$('composer').style.display='flex';$('debBtns').innerHTML='<button class="soft grow" onclick="finishDebrief()">✅ لخّص وأنشئ البطاقات</button><button class="ghost" onclick="skipDebrief()">تخطَّ</button>';R=null;mood();go('home');if(msg)toast(msg)}
-let rec;function dictate(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;try{rec=new SR();rec.lang='ar-EG';rec.interimResults=true;$('micBtn').textContent='⏺️';rec.onresult=e=>{$('chatIn').value=[...e.results].map(r=>r[0].transcript).join(' ')};rec.onend=()=>$('micBtn').textContent='🎙️';rec.onerror=()=>{$('micBtn').textContent='🎙️';toast('الميكروفون غير متاح هنا')};rec.start()}catch(e){toast('الميكروفون غير متاح')}}
 
 /* ================= flashcards (spaced repetition) ================= */
 const STEPS=[1,3,7,14,30,60];
@@ -573,7 +617,7 @@ function grade(ok){const c=revQ.shift();const card=S.cards.find(x=>x.id===c.id);
 async function renderStorage(){const B=$('storeBox');try{const persisted=await navigator.storage?.persisted?.();const est=await navigator.storage?.estimate?.();const mb=x=>(x/1048576).toFixed(x>1048576*100?0:1);
   B.innerHTML=`<div class="row"><div class="grow"><b>المساحة</b><div class="muted">${est?`مستخدم ${mb(est.usage)} ميجا من ${est.quota>1073741824?(est.quota/1073741824).toFixed(1)+' جيجا':mb(est.quota)+' ميجا'} متاحة`:'غير معروفة'} · ${S.books.length} كتب · ${S.cards.length} بطاقة</div><div class="muted">${persisted?'🔒 التخزين دائم: لن يمسحه المتصفح':'⚠️ التخزين غير محمي بعد'}</div></div>${persisted?'':'<button class="soft" onclick="askPersist()">احمِ بياناتي</button>'}</div>`}catch(e){B.innerHTML='<span class="muted">لا يمكن حساب المساحة في هذا المتصفح.</span>'}}
 async function askPersist(){try{const ok=await navigator.storage.persist();toast(ok?'تم ✓ بياناتك محمية':'المتصفح لم يوافق بعد — أضف التطبيق للشاشة الرئيسية ثم جرّب');}catch(e){toast('غير مدعوم هنا')}renderStorage()}
-function renderSettings(){renderStorage();$('keyIn').value=S.settings.key;$('modelIn').value=S.settings.model;$('nameIn').value=S.settings.name;$('styleChips').innerHTML=[['fusha','فصحى مبسطة'],['mix','فصحى + لمسة عامية'],['ammiya','عامية مصرية']].map(([k,l])=>`<span class="chip ${S.settings.style===k?'on':''}" onclick="S.settings.style='${k}';renderSettings()">${l}</span>`).join('')}
+function renderSettings(){renderStorage();$('rateIn').value=S.settings.rate||0.95;$('voiceChips').innerHTML=[[false,'أقرأ عند الضغط فقط'],[true,'اقرأ الشروح تلقائيًا']].map(([k,l])=>`<span class="chip ${!!S.settings.autoRead===k?'on':''}" onclick="S.settings.autoRead=${k};save();renderSettings()">${l}</span>`).join('');$('keyIn').value=S.settings.key;$('modelIn').value=S.settings.model;$('nameIn').value=S.settings.name;$('styleChips').innerHTML=[['fusha','فصحى مبسطة'],['mix','فصحى + لمسة عامية'],['ammiya','عامية مصرية']].map(([k,l])=>`<span class="chip ${S.settings.style===k?'on':''}" onclick="S.settings.style='${k}';renderSettings()">${l}</span>`).join('')}
 function saveSettings(){S.settings.key=$('keyIn').value.trim();S.settings.model=$('modelIn').value.trim()||'gemini-flash-latest';S.settings.name=$('nameIn').value.trim()||'أنيس';save();toast('حُفظت الإعدادات ✓')}
 async function testKey(){saveSettings();$('testOut').textContent='جارٍ الاختبار…';window.onTry=m=>$('testOut').textContent='جارٍ الاختبار مع '+m+' …';try{const o=await gemini([{role:'user',parts:[{text:'قل تحية قصيرة جدًا للقارئ في جملة واحدة.'}]}]);$('testOut').textContent='✓ يعمل: '+o}catch(e){$('testOut').textContent=e.message==='NOKEY'?'أدخل المفتاح أولًا':'✗ '+e.message}window.onTry=null}
 async function exportData(){const data=JSON.stringify({cards:S.cards,notes:S.books.map(b=>({title:b.title,notes:b.notes})),sessions:S.sessions},null,1);try{await navigator.clipboard.writeText(data);toast('نُسخت البيانات ✓ الصقها في ملف أو رسالة لنفسك')}catch(e){openSheet(`<b>انسخ هذا النص واحفظه:</b><textarea style="min-height:260px;margin-top:10px;direction:ltr">${esc(data)}</textarea>`)}}
