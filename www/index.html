@@ -391,7 +391,7 @@ html[dir=ltr] .textpage{text-align:left;hyphens:auto}html[dir=ltr] .textpage p{t
   <div id="themeChips"></div>
   <h2>سرعة أنيس</h2>
   <div id="speedChips"></div>
-  <div class="muted" style="margin-top:6px;line-height:1.7">⚡ سريع: يستخدم نموذجًا خفيفًا للشرح والأسئلة والمحاورة (أسرع بكثير وحدوده أوسع). الإعراب يبقى دائمًا بالنموذج الأقوى للدقة.</div>
+  <div class="muted" style="margin-top:6px;line-height:1.7">⚡ سريع: يستخدم نموذجًا خفيفًا للشرح والأسئلة والمحاورة (أسرع بكثير وحدوده أوسع). التشكيل يبقى دائمًا بالنموذج الأقوى للدقة.</div>
   <h2>اسم رفيقك</h2>
   <input id="nameIn" placeholder="أنيس">
   <div class="row" style="margin-top:18px">
@@ -824,7 +824,7 @@ let selLang='ar';
 function setIrabLabel(ar){selLang=ar?'ar':'en';const foreign=ar===EN;
   const L={friend:'💬 اشرح لي كصديق',life:'🌱 مثال من الحياة',tr:foreign?'🌐 ترجم':(ar?'🌐 ترجم للإنجليزية':'🌐 ترجم للعربية'),words:'📖 الكلمات الصعبة',irab:ar?'✍️ أعرب':'🔍 حلّل الجملة',tashkeel:'🔤 شكّل النص',card:'🗂️ بطاقة فهم',tarkib:'✨ تركيب أتملّكه'};
   const main=foreign?['friend','tr','words']:['friend','life','card'];
-  const more=['life','tr','words','irab',...(ar?['tashkeel']:[]),'card','tarkib'].filter(k=>!main.includes(k));
+  const more=['life','tr','words',...(ar?['tashkeel']:[]),'card'].filter(k=>!main.includes(k));
   const b=(k,c)=>`<button onclick="aiAct('${k}')" class="${c||''}">${L[k]}</button>`;
   $('actbar').innerHTML=main.map(k=>b(k)).join('')+`<button onclick="$('actbar').classList.toggle('more')" class="soft">⋯ المزيد</button>`+more.map(k=>b(k,'soft mx')).join('')+`<button onclick="clearSel()" class="ghost">إلغاء</button>`}
 function clearSel(){sel=null;$('actbar').classList.remove('on','more');$('selBox').style.display='none';try{getSelection().removeAllRanges()}catch(e){}}
@@ -1045,7 +1045,7 @@ async function shareWeek(){const st=weekStats();if(!st.min){toast('اقرأ جل
 const OB=[
  {art:()=>`<div class="onb-art"><div class="ring"></div>${anisSVG()}</div>`,t:'أهلًا بك في أنيس',d:'رفيقك الذي يجلس معك ويقرأ معك… يشرح ويبسّط ويؤنسك، حتى تصير القراءة متعة يومية.'},
  {art:()=>art('book-open','timer','moon'),t:'اقرأ بتركيز تام',d:'جلسة قراءة بمؤقت وأجواء هادئة ووضع بلا حواف… ليس بينك وبين الكتاب شيء.'},
- {art:()=>art('sparkles','message-circle-question','search'),t:'ظلّل… واسأل أنيس',d:'حدّد أي فقرة فيشرحها لك كصديق، أو يترجمها، أو يشرح كلماتها الصعبة ويحفظها لك، أو يعربها ويشكّلها.'},
+ {art:()=>art('sparkles','message-circle-question','search'),t:'ظلّل… واسأل أنيس',d:'حدّد أي فقرة فيشرحها لك كصديق، أو يترجمها، أو يشرح كلماتها الصعبة ويحفظها لك، أو يشكّلها.'},
  {art:()=>art('headphones','mic','volume-2'),t:'استمع… وتكلّم',d:'يقرأ لك أنيس الصفحة بصوت جميل، وتسأله بصوتك دون أن تكتب حرفًا.'},
  {art:()=>art('notebook-pen','layers','folder'),t:'ثبّت ما تعلمته',d:'دفتر لكل كتاب يحفظ نقاشاتك، وبطاقات مراجعة تعود إليك في وقتها… فلا تنسى ما قرأت.'},
  {art:()=>`<div class="onb-art"><div class="ring"></div><div id="obRing">${ringSVG(0,150)}</div></div>`,t:'وِردك اليومي',d:'كم دقيقة تحب أن تقرأ كل يوم؟',goal:true},
