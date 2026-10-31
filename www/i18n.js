@@ -147,6 +147,8 @@ function attrs(el){['placeholder','title'].forEach(function(a){var v=el.getAttri
 function tr(n){
   if(n.nodeType===3){if(!AR.test(n.nodeValue)||skip(n.parentElement))return;var t=T(n.nodeValue);if(t!==n.nodeValue)n.nodeValue=t;return}
   if(n.nodeType===1&&n.tagName==='TEXTAREA'&&!n.closest('.notr'))attrs(n);
+  if(n.nodeType===1&&n.querySelectorAll)n.querySelectorAll('.dots').forEach(function(d){d.childNodes.forEach(function(c){if(c.nodeType===3&&AR.test(c.nodeValue))c.nodeValue=T(c.nodeValue)})});
+  if(n.nodeType===1&&n.classList&&n.classList.contains('dots')&&skip(n.parentElement)){n.childNodes.forEach(function(c){if(c.nodeType===3&&AR.test(c.nodeValue))c.nodeValue=T(c.nodeValue)})}
   if(n.nodeType!==1||skip(n))return;attrs(n);
   var w=document.createTreeWalker(n,5,null),x;while((x=w.nextNode())){if(x.nodeType===1){if(x.hasAttribute('placeholder')||x.hasAttribute('title'))if(!skip(x)||(x.tagName==='TEXTAREA'&&!x.closest('.notr')))attrs(x)}else if(AR.test(x.nodeValue)&&!skip(x.parentElement)){var t2=T(x.nodeValue);if(t2!==x.nodeValue)x.nodeValue=t2}}
 }
