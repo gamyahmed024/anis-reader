@@ -1,0 +1,154 @@
+/* ============ Anis i18n: Arabic (source) ↔ English ============
+   The app is written in Arabic. In English mode every Arabic UI text that
+   enters the page is translated on the fly from the dictionary below.
+   User content (book text, titles, AI answers, notes) is never touched:
+   it lives inside .notr/.answer/.msg/.textpage/.t elements or inside «…». */
+(function(){
+var lang='ar';
+try{var o=JSON.parse(localStorage.getItem('anis_v1')||'{}');if(o&&o.settings&&o.settings.lang)lang=o.settings.lang;else lang=/^ar/i.test(navigator.language||'')?'ar':'en'}catch(e){}
+window.LANG=lang;window.EN=lang==='en';window.LOC=window.EN?'en-GB':'ar-EG';
+document.documentElement.lang=lang;document.documentElement.dir=window.EN?'ltr':'rtl';
+if(window.EN)document.title='Anis: Read with a Friend';
+
+var D=[
+['أنيس','Anis'],['أنيس المميّز','Anis Premium'],['العربية','Arabic'],['أرسلت التحويل','I sent the transfer'],['تحميل الصوت العربي','Download Arabic voice'],['لخّص وأنشئ البطاقات','Summarize & make cards'],
+['⚠️ افتح التطبيق من عنوان ثابت','⚠️ Open the app from a fixed address'],
+['فتحتَه الآن من عنوان مؤقت، فقد تضيع مكتبتك وبطاقاتك. اكتب هذا في شريط عنوان Chrome ثم أضفه للشاشة الرئيسية:','You opened it from a temporary address, so your library may be lost. Type this in Chrome\'s address bar, then add it to your home screen:'],
+['أهلًا بك','Welcome'],['أنا أنيس، أقرأ معك.','I\'m Anis, I read with you.'],['أيام متتالية','day streak'],['دقيقة قراءة','minutes read'],['بطاقة للمراجعة','cards to review'],['وِرد اليوم','Today\'s reading'],
+['🗂️ راجع بطاقاتك اليوم (','🗂️ Review your cards today ('],['مكتبتي','My Library'],['مجلد جديد','New folder'],['أضف كتابًا (PDF أو TXT)','Add a book (PDF or TXT)'],['الصق نصًا','Paste text'],
+['شغّل عقل أنيس ✨','Turn on Anis\'s mind ✨'],['ادخل بحساب جوجل لتحصل على شروح أنيس مجانًا كل يوم 🎁','Sign in with Google to get free explanations from Anis every day 🎁'],['الدخول بحساب جوجل','Sign in with Google'],
+['التطبيق يعمل كقارئ بدون مفتاح، لكن الشرح والمحاورة يحتاجان مفتاح Gemini API (مجاني من Google AI Studio).','The app works as a reader without a key, but explanations and talks need a Gemini API key (free from Google AI Studio).'],['إضافة المفتاح','Add key'],
+['إنهاء','End'],['تصغير','Zoom out'],['تكبير','Zoom in'],['الوضع الليلي','Night mode'],['الأجواء','Ambience'],['اقرأ لي الصفحة','Read the page to me'],['حدّد جزءًا','Select a part'],['أنا هنا','I\'m here'],
+['‹ التالية','Next ›'],['السابقة ›','‹ Previous'],['💬 اشرح لي كصديق','💬 Explain like a friend'],['🌱 مثال من الحياة','🌱 Real-life example'],['✍️ أعرب','✍️ I\'rab (grammar)'],['🔍 حلّل الجملة','🔍 Analyze grammar'],['⋯ المزيد','⋯ More'],
+['🗂️ بطاقة فهم','🗂️ Understanding card'],['✨ تركيب أتملّكه','✨ Phrase to own'],['إلغاء','Cancel'],['جلسة جميلة 🌿','Lovely session 🌿'],['✅ لخّص وأنشئ البطاقات','✅ Summarize & make cards'],['تخطَّ','Skip'],
+['اشرح لأنيس بأسلوبك…','Explain it to Anis in your own words…'],['إرسال','Send'],['المراجعة 🗂️','Review 🗂️'],['اقلب البطاقة، ثم قل لأنيس بصدق: هل تذكّرت؟','Flip the card, then tell Anis honestly: did you remember?'],['كل البطاقات','All cards'],
+['دفتري 📒','My Notebook 📒'],['لكل كتاب دفتره: الشروح، أسئلتك، والمحاورات بعد الجلسات.','Every book has its own notebook: explanations, your questions, and post-session talks.'],['🔍 ابحث في دفترك…','🔍 Search your notebook…'],
+['الإعدادات','Settings'],['إعدادات متقدمة (مفتاحك الخاص)','Advanced settings (your own key)'],['اختياري: لو وضعت مفتاح Gemini الخاص بك يستخدمه أنيس مباشرة بدون حدود الحساب.','Optional: if you add your own Gemini key, Anis uses it directly with no account limits.'],
+['مفتاح Gemini API','Gemini API key'],['احصل عليه مجانًا من aistudio.google.com ← Get API key. يُحفظ على جهازك فقط.','Get it free from aistudio.google.com → Get API key. Stored on your device only.'],['النموذج','Model'],
+['الافتراضي gemini-flash-latest (أحدث Flash تلقائيًا).','Default: gemini-flash-latest (always the newest Flash).'],['حفظ','Save'],['اختبار','Test'],['أسلوب الشرح','Explanation style'],['صوت أنيس','Anis\'s voice'],['سرعة القراءة','Reading speed'],
+['🔊 جرّب الصوت','🔊 Try the voice'],['⬇️ تحميل الصوت العربي','⬇️ Download Arabic voice'],['⚙️ إعدادات الصوت في الهاتف','⚙️ Phone voice settings'],['صوت قراءة الشروح والإجابات:','Voice for explanations and answers:'],['صوت الذكاء الاصطناعي:','AI voice:'],
+['وِردك اليومي','Your daily reading'],['تذكير يومي لطيف','Gentle daily reminder'],['وقت التذكير','Reminder time'],['يذكّرك أنيس بالكتاب والصفحة التي توقفت عندها.','Anis reminds you of the book and page where you stopped.'],
+['📤 شارك أسبوعك في القراءة','📤 Share your reading week'],['🎬 شرح التطبيق','🎬 App tour'],['المظهر','Appearance'],['سرعة أنيس','Anis\'s speed'],
+['⚡ سريع: يستخدم نموذجًا خفيفًا للشرح والأسئلة والمحاورة (أسرع بكثير وحدوده أوسع). الإعراب يبقى دائمًا بالنموذج الأقوى للدقة.','⚡ Fast: uses a light model for explanations, questions and talks (much faster, higher limits). Grammar analysis always uses the stronger model for accuracy.'],
+['اسم رفيقك','Your companion\'s name'],['اختبار المفتاح','Test key'],['البيانات','Data'],['جارٍ حساب المساحة…','Calculating storage…'],['📤 نسخ نسخة احتياطية (البطاقات والملخصات)','📤 Copy a backup (cards & summaries)'],
+['مراجعة','Review'],['دفتري','Notebook'],['إعدادات','Settings'],['انتهى الوقت… أغلقتُ كتابي 📖','Time\'s up… I closed my book 📖'],['لنتحدث عمّا قرأنا','Let\'s talk about what we read'],['+10 دقائق','+10 minutes'],
+['خطأ:','Error:'],['⏸️ إيقاف مؤقت','⏸️ Pause'],['▶️ استئناف','▶️ Resume'],['🔊 اقرأها لي','🔊 Read it to me'],['لا اتصال بالإنترنت','No internet connection'],
+['لا يوجد صوت عربي على هاتفك بعد 🔈','No Arabic voice on your phone yet 🔈'],['حمّل الصوت العربي المجاني من جوجل (مرة واحدة، ويعمل بلا إنترنت).','Download the free Arabic voice from Google (once; it works offline).'],
+['هاتفك بلا صوت عربي بعد — سأقرأ بصوت الذكاء الاصطناعي. للصوت المجاني: الإعدادات ← «تحميل الصوت العربي»','Your phone has no Arabic voice yet — I\'ll read with the AI voice. For the free voice: Settings → «Download Arabic voice»'],
+['تعذّرت القراءة الصوتية:','Couldn\'t read aloud:'],['اسمح للتطبيق باستخدام الميكروفون من الإعدادات','Allow the app to use the microphone in Settings'],['التعرّف على الكلام غير متاح على هذا الهاتف (ثبّت تطبيق Google)','Speech recognition isn\'t available on this phone (install the Google app)'],
+['تكلّم… أنيس يسمعك','Speak… Anis is listening'],['لم أسمع جيدًا، جرّب مرة أخرى','I didn\'t catch that, try again'],['الميكروفون غير متاح هنا','Microphone not available here'],['الميكروفون غير متاح','Microphone not available'],
+['جارٍ فحص الصوت…','Checking voice…'],['✓ الصوت العربي جاهز على هاتفك (مجاني وبلا إنترنت)','✓ The Arabic voice is ready on your phone (free, works offline)'],
+['⚠️ محرّك جوجل موجود لكن العربية لم تُحمَّل بعد — اضغط «تحميل الصوت العربي» واختر العربية ثم ⬇️','⚠️ Google\'s voice engine is installed but Arabic isn\'t downloaded yet — tap «Download Arabic voice», choose Arabic, then ⬇️'],
+['⚠️ محرّك جوجل للصوت غير مثبّت — ثبّت «Speech Recognition & Synthesis» من Google Play','⚠️ Google\'s voice engine isn\'t installed — install «Speech Recognition & Synthesis» from Google Play'],
+['حتى ذلك الحين يقرأ أنيس بصوت Gemini (يحتاج إنترنت).','Until then, Anis reads Arabic with the Gemini voice (needs internet).'],['✓ الصوت العربي متاح على هاتفك','✓ The Arabic voice is available on your phone'],['⚠️ الصوت العربي غير مُثبّت بعد','⚠️ The Arabic voice isn\'t installed yet'],
+['اختر «العربية» ثم اضغط ⬇️، وبعد التنزيل ارجع لأنيس','Choose «Arabic», tap ⬇️, then come back to Anis after the download'],['تعذّر الفتح','Couldn\'t open'],['هذه الميزة داخل التطبيق فقط','This feature works inside the app only'],
+['افتح إعدادات الهاتف ← تحويل النص إلى كلام','Open phone settings → Text-to-speech'],['تعذّر الحفظ على الجهاز','Couldn\'t save on the device'],
+['خوادم Gemini مزدحمة الآن على كل النماذج، جرّب بعد دقيقة.','Gemini servers are busy on all models right now; try again in a minute.'],['تأخر الرد كثيرًا','The reply took too long'],
+['لا يمكن الاتصال بـ Gemini. تأكد من اتصالك بالإنترنت ثم أعد المحاولة.','Can\'t reach Gemini. Check your internet connection and try again.'],['لم يصل رد','No reply arrived'],['سجّل دخولك بحساب جوجل ليفكّر أنيس معك ✨','Sign in with Google so Anis can think with you ✨'],
+['رد غير مفهوم، أعد المحاولة','Unclear reply, please try again'],['جارٍ الإضافة…','Adding…'],['كتاب','book'],['كتب','books'],['تعذّرت إضافة','Couldn\'t add'],['إلى','to'],['إلى مكتبتك','to your library'],['أُضيف','Added'],
+['الصق نصًا لتقرأه','Paste a text to read'],['العنوان','Title'],['الصق المقال أو الفصل هنا…','Paste the article or chapter here…'],['أضف','Add'],['نص بلا عنوان','Untitled text'],['النص فارغ','The text is empty'],
+['السلام عليكم','Hello'],['هنا. آخر مرة قرأنا','is here. Last time we read'],['دقيقة في','min of'],['أنا','I\'m'],['، اختر كتابًا وسأجلس معك.',', pick a book and I\'ll sit with you.'],['المجلد','Folder'],
+['→ رجوع للمكتبة','← Back to library'],['كتب خارج المجلدات','Books outside folders'],['هذا المجلد فارغ. أضف كتبًا إليه من الزر بالأسفل، أو انقل كتبًا موجودة من زر ⋯ بجانب أي كتاب.','This folder is empty. Add books with the button below, or move existing books with the ⋯ button next to any book.'],
+['مكتبتك فارغة. أضف كتابًا لتبدأ.','Your library is empty. Add a book to start.'],['نص','Text'],['صفحة','page'],['من','of'],['لم يبدأ بعد','Not started yet'],['اقرأ','Read'],
+['مجلد جديد 📁','New folder 📁'],['مثلًا: كتب النحو، روايات، الملكة اللغوية','e.g. Grammar, Novels, Self-study'],['إنشاء','Create'],['اكتب اسم المجلد','Type a folder name'],['تمت إعادة التسمية','Renamed'],['أُنشئ المجلد ✓','Folder created ✓'],
+['حفظ الاسم','Save name'],['حذف المجلد','Delete folder'],['حذف المجلد لا يحذف كتبه، بل يعيدها إلى المكتبة.','Deleting a folder doesn\'t delete its books; it returns them to the library.'],['حُذف المجلد، وعادت كتبه إلى المكتبة','Folder deleted; its books are back in the library'],
+['نُقل إلى','Moved to'],['نُقل إلى المكتبة','Moved to the library'],['بطاقات المراجعة بعد الجلسة','Review cards after each session'],['مفعّلة: 2–3 بطاقات فقط لكل جلسة','On: only 2–3 cards per session'],
+['متوقفة: ملخص فقط (مناسب للروايات وقراءة المتعة)','Off: summary only (good for novels and reading for fun)'],['تشغيل ✓','On ✓'],['إيقاف','Off'],['ملخصات جلساتك:','Your session summaries:'],['· صفحة','· page'],['لا ملخصات بعد.','No summaries yet.'],
+['📒 دفتر هذا الكتاب (','📒 This book\'s notebook ('],['📚 بدون مجلد','📚 No folder'],['＋ مجلد جديد','＋ New folder'],['إغلاق','Close'],['حذف الكتاب','Delete book'],['حذف الكتاب؟','Delete this book?'],['ستبقى بطاقاتك محفوظة.','Your cards will stay saved.'],['احذف','Delete'],['تراجع','Cancel'],
+['أهلًا بعودتك 🌿 توقفنا عند صفحة','Welcome back 🌿 We stopped at page'],['، وكانت خلاصة ما فهمتَه:',', and your takeaway was:'],['جميل! أول جلسة لنا مع','Lovely! Our first session with'],
+['. سأقرأ معك بهدوء، ولن أقاطعك إلا إذا ناديتني.','. I\'ll read quietly with you and won\'t interrupt unless you call me.'],['ماذا تريد أن تخرج به اليوم؟','What do you want to get out of today?'],['مثلًا: أفهم الفكرة الأساسية للفصل الثاني','e.g. Understand the main idea of chapter two'],
+['مدة الجلسة','Session length'],['د','min'],['⏱️ مخصص','⏱️ Custom'],['ساعات','Hours'],['دقائق','minutes'],['🌧️ مطر خفيف','🌧️ Light rain'],['🔥 دفء هادئ','🔥 Warm calm'],['☕ همهمة مقهى','☕ Café murmur'],['🤫 صمت','🤫 Silence'],
+['ضع الهاتف أمامك، خذ نفسًا عميقًا… وابدأ.','Put your phone in front of you, take a deep breath… and begin.'],['📖 لنبدأ القراءة معًا','📖 Let\'s start reading together'],['اكتب مدة الجلسة','Enter the session length'],['تعذّر فتح الكتاب، أعد إضافته','Couldn\'t open the book; please add it again'],
+['تعذّر تحميل قارئ PDF','Couldn\'t load the PDF reader'],['اذهب إلى صفحة','Go to page'],['من 1 إلى','From 1 to'],['· أنت الآن في','· you\'re now on'],['اذهب','Go'],['اكتب رقمًا من 1 إلى','Type a number from 1 to'],['التكبير','Zoom'],['حجم الخط','Font size'],
+['هذه أول صفحة','This is the first page'],['وصلنا إلى آخر الكتاب 🎉','We reached the end of the book 🎉'],['هل ننهي الجلسة الآن؟','End the session now?'],['نعم، لنتحدث','Yes, let\'s talk'],['أكمل القراءة','Keep reading'],
+[': أهلًا بعودتك 🙂 كنا في صفحة',': Welcome back 🙂 we were on page'],['اسحب إصبعك على الجزء الذي تريده','Drag your finger over the part you want'],['يقرأ المقطع','Reading the passage'],['فهمت، أكمل 📖','Got it, continue 📖'],
+['✨ حُفظ التركيب','✨ Phrase saved'],['🗂️ حُفظت البطاقة','🗂️ Card saved'],['بسّطها أكثر','Simplify more'],['لحظة','One moment'],['نعم؟ أنا معك. اسألني عن هذه الصفحة 🙂','Yes? I\'m with you. Ask me about this page 🙂'],
+['اكتب سؤالك أو اضغط 🎙️ وتكلّم…','Type your question or tap 🎙️ and speak…'],['اسأل','Ask'],['عودة','Back'],['يفكّر','Thinking'],['أتممت وِردك اليوم!','You completed today\'s reading!'],['دقيقة من','min of'],['· بارك الله في وقتك','· time well spent'],
+['ترقّيت إلى مرتبة','You reached the rank'],['دقيقة ·','min ·'],['صفحة ·','pages ·'],['حفظتُ كلامك كملخص للجلسة 📝','I saved your words as the session summary 📝'],['أكتب الملخص وأصنع البطاقات','Writing the summary and making cards'],
+['📝 خلاصة جلستنا','📝 Our session summary'],['🗂️ أضفتُ','🗂️ I added'],['بطاقات للمراجعة.','review cards.'],['إلى المكتبة 📚','To the library 📚'],['إعادة المحاولة','Try again'],
+['🎧 اقرأ لي الصفحة','🎧 Read the page to me'],['📱 صوت الهاتف (جوجل)','📱 Phone voice (Google)'],['مجاني تمامًا ولا يستهلك من حد الذكاء الاصطناعي.','Completely free and doesn\'t use your AI limit.'],
+['(صفحات PDF تحتاج طلبًا واحدًا لاستخراج النص أول مرة فقط)','(PDF pages need one request to extract the text, the first time only)'],['✨ صوت الذكاء الاصطناعي','✨ AI voice'],
+['صوت أجمل وأقرب للإنسان، يحتاج إنترنت ويستهلك طلبات من حد Gemini.','A more beautiful, human-like voice; needs internet and uses requests from your daily limit.'],['صوت رجل','Male voice'],['صوت امرأة','Female voice'],
+['تابع القراءة للصفحات التالية تلقائيًا','Continue to the next pages automatically'],['▶️ ابدأ القراءة من صفحة','▶️ Start reading from page'],['الصفحة التالية','Next page'],['صوت الهاتف العربي غير جاهز بعد 🔈','The Arabic phone voice isn\'t ready yet 🔈'],
+['حمّل الصوت العربي من جوجل (مرة واحدة)، أو استخدم صوت الذكاء الاصطناعي الآن.','Download the Arabic voice from Google (once), or use the AI voice now.'],['أجهّز صفحة','Preparing page'],['⏸️ متوقف عند صفحة','⏸️ Paused at page'],['🎧 يقرأ صفحة','🎧 Reading page'],
+['أهلًا بك في أنيس','Welcome to Anis'],['ادخل بحسابك على جوجل لتحصل على','Sign in with your Google account to get'],['شروح مجانية كل يوم','free explanations every day'],['، و',', and '],['هدية يومية','a daily gift'],['كلما رجعت 🎁','every time you come back 🎁'],
+['نأخذ اسمك وبريدك فقط، ولا نرى كلمة سرّك أبدًا.','We only take your name and email, and never see your password.'],['سياسة الخصوصية','Privacy policy'],['لاحقًا، أقرأ فقط','Later, just read'],
+['الدخول بجوجل يعمل داخل التطبيق المثبّت على الهاتف','Google sign-in works inside the installed app'],['لم يصل رمز الدخول من جوجل','No sign-in token came from Google'],['جارٍ الدخول…','Signing in…'],['أهلًا','Hi'],['تعذّر الدخول:','Sign-in failed:'],
+['🎁 هديتك اليومية','🎁 Your daily gift'],['شرح','explanations'],['إضافي لليوم لأنك رجعت لأنيس','extra today because you came back to Anis'],['🔥 سلسلتك:','🔥 Your streak:'],['يوم','day'],['أيام','days'],['متتالية — لا تقطعها!','in a row — don\'t break it!'],['شكرًا يا أنيس 🌿','Thank you, Anis 🌿'],
+['· شروح بلا قيود تقريبًا','· almost unlimited explanations'],['✨ باقي لك','✨ You have'],['شروح اليوم','explanations left today'],['ترقية','Upgrade'],['حسابك','Your account'],
+['ادخل لتحصل على الشروح المجانية اليومية والهدايا، ولتفعّل «أنيس المميّز».','Sign in to get free daily explanations and gifts, and to activate «Anis Premium».'],['👑 مميّز حتى','👑 Premium until'],['اليوم','today'],['👑 اشترك في أنيس المميّز','👑 Subscribe to Anis Premium'],
+['تسجيل الخروج','Sign out'],['حذف حسابي','Delete my account'],['ادخل أولًا لتشترك في أنيس المميّز','Sign in first to subscribe to Anis Premium'],['شروح ومحاورات بلا قيود تقريبًا','Almost unlimited explanations and talks'],['صوت الذكاء الاصطناعي الجميل','The beautiful AI voice'],
+['قراءة الصفحات بصوت أنيس','Page reading in Anis\'s voice'],['دعم مستمر وميزات جديدة أولًا','Ongoing support, new features first'],['ادفع الآن بضغطة واحدة','Pay now in one tap'],['إنستاباي','InstaPay'],['نسخ','Copy'],['محفظة (فودافون كاش وغيرها)','Wallet (Vodafone Cash, etc.)'],
+['طرق الدفع ستُضاف قريبًا جدًا 🌿','Payment methods are coming very soon 🌿'],['انتهت شروحك المجانية اليوم وتتجدد غدًا، أو اشترك الآن واقرأ بلا توقف.','Your free explanations for today are used up and renew tomorrow — or subscribe now and read without stopping.'],
+['شهري','Monthly'],['ج','EGP'],['وفّر','Save'],['سنوي','Yearly'],['طريقة الاشتراك','How to subscribe'],['١. حوّل','1. Transfer'],['جنيه بإنستاباي أو المحفظة.','EGP via InstaPay or a wallet.'],
+['٢. اضغط «أرسلت التحويل» وأرسل صورة التحويل على واتساب.','2. Tap «I sent the transfer» and send a screenshot on WhatsApp.'],['٣. يُفعَّل اشتراكك على بريدك','3. Your subscription is activated on your email'],['خلال وقت قصير.','shortly.'],
+['📩 أرسلت التحويل (واتساب)','📩 I sent the transfer (WhatsApp)'],['ليس الآن','Not now'],['نُسخ ✓','Copied ✓'],['تم تسجيل الخروج','Signed out'],['حذف حسابك نهائيًا؟','Delete your account permanently?'],
+['سيُحذف حسابك واشتراكك وسجل استخدامك من خوادمنا فورًا. كتبك ودفترك وبطاقاتك على هاتفك تبقى كما هي.','Your account, subscription and usage history will be deleted from our servers immediately. Your books, notebook and cards on your phone stay as they are.'],
+['نعم، احذف حسابي','Yes, delete my account'],['حُذف حسابك','Your account was deleted'],['تعذّر الحذف:','Delete failed:'],
+['قارئ مبتدئ','Beginner reader'],['قارئ','Reader'],['قارئ مُداوِم','Steady reader'],['صاحب وِرد','Daily reader'],['قارئ مُتمكّن','Skilled reader'],['رفيق الكتب','Friend of books'],
+['أتممت وِردك اليوم 🌿 (','Today\'s reading done 🌿 ('],['🎯 وِردك اليومي','🎯 Your daily reading'],['كم دقيقة تحب أن تقرأ يوميًا؟ القليل الدائم خير من الكثير المنقطع.','How many minutes would you like to read each day? A little, every day, beats a lot, now and then.'],
+['تم','Done'],['🏅 مراتب القارئ','🏅 Reader ranks'],['مجموع قراءتك:','Your total reading:'],['دقيقة','minutes'],['أنت هنا','You\'re here'],['رائع','Great'],
+['التذكير يعمل داخل التطبيق المثبّت','Reminders work inside the installed app'],['اسمح بالإشعارات لأنيس من إعدادات الهاتف','Allow notifications for Anis in your phone settings'],['سأذكّرك يوميًا الساعة','I\'ll remind you daily at'],['أُوقف التذكير','Reminder turned off'],
+['تعذّر ضبط التذكير:','Couldn\'t set the reminder:'],['تشغيل','On'],['اقرأ جلسة واحدة على الأقل هذا الأسبوع لتصنع بطاقتك 🌿','Read at least one session this week to make your card 🌿'],['أجهّز بطاقتك…','Preparing your card…'],
+['بطاقة أسبوعك','Your week card'],['اضغط مطولًا على الصورة لحفظها أو مشاركتها.','Long-press the image to save or share it.'],
+['رفيقك الذي يجلس معك ويقرأ معك… يشرح ويبسّط ويؤنسك، حتى تصير القراءة متعة يومية.','The friend who sits and reads with you… explaining, simplifying and keeping you company, until reading becomes a daily joy.'],
+['اقرأ بتركيز تام','Read with full focus'],['جلسة قراءة بمؤقت وأجواء هادئة ووضع بلا حواف… ليس بينك وبين الكتاب شيء.','A reading session with a timer, calm ambience and an edge-free mode… nothing between you and the book.'],
+['ظلّل… واسأل أنيس','Highlight… and ask Anis'],['حدّد أي فقرة صعبة فيشرحها لك كصديق، أو يعربها، أو يضرب لك مثلًا من الحياة.','Select any hard passage and Anis explains it like a friend, analyzes its grammar, or gives you a real-life example.'],
+['استمع… وتكلّم','Listen… and talk'],['يقرأ لك أنيس الصفحة بصوت جميل، وتسأله بصوتك دون أن تكتب حرفًا.','Anis reads the page to you in a lovely voice, and you ask him by voice without typing a letter.'],
+['ثبّت ما تعلمته','Keep what you learn'],['دفتر لكل كتاب يحفظ نقاشاتك، وبطاقات مراجعة تعود إليك في وقتها… فلا تنسى ما قرأت.','A notebook for each book keeps your talks, and review cards come back at the right time… so you don\'t forget what you read.'],
+['كم دقيقة تحب أن تقرأ كل يوم؟','How many minutes would you like to read each day?'],['القليل الدائم خيرٌ من الكثير المنقطع.','A little, every day, beats a lot, now and then.'],['التالي','Next'],['لنبدأ 📖','Let\'s begin 📖'],
+['آخر خطوة: ادخل لتبدأ مع أنيس 🌿','Last step: sign in to start with Anis 🌿'],
+['💬 شرح كصديق','💬 Friendly explanation'],['✍️ إعراب','✍️ Grammar'],['❓ سؤال','❓ Question'],['🗣️ محاورة بعد الجلسة','🗣️ Post-session talk'],['بدون كتاب','No book'],['📝 الخلاصة:','📝 Summary:'],['ص','p.'],
+['🗂️ اجعلها بطاقة','🗂️ Make it a card'],['📋 نسخ','📋 Copy'],['حذف','Delete'],['دفترك فارغ بعد','Your notebook is empty'],
+['كل شرح تطلبه وكل سؤال تسأله ومحاورة بعد الجلسة سيُحفظ هنا تلقائيًا، في دفتر خاص بكل كتاب.','Every explanation you ask for, every question and every post-session talk is saved here automatically, in a notebook for each book.'],
+['→ كل الدفاتر','← All notebooks'],['📋 نسخ الدفتر','📋 Copy notebook'],['الكل','All'],['ترتيب:','Sort:'],['📅 الأحدث','📅 Newest'],['📄 حسب الصفحة','📄 By page'],['لا شيء هنا.','Nothing here.'],['📄 صفحة','📄 Page'],
+['نتيجة في كل الدفاتر','results across all notebooks'],['لا نتائج.','No results.'],['📚 المكتبة','📚 Library'],['🗃️ كتب محذوفة','🗃️ Deleted books'],['مدخل','entries'],['آخر نقاش:','Last talk:'],['· ص','· p.'],
+['نُسخ الدفتر كاملًا ✓ الصقه في ملاحظاتك أو مستند','Whole notebook copied ✓ paste it into your notes or a document'],['حُذف من الدفتر','Removed from the notebook'],['أُضيفت البطاقة ✓','Card added ✓'],['أصنع البطاقة…','Making the card…'],['أُضيفت البطاقة 🗂️','Card added 🗂️'],
+['✨ تركيب','✨ Phrase'],['🗂️ فهم','🗂️ Understanding'],['· المراجعة القادمة:','· next review:'],['ستظهر هنا البطاقات التي تصنعها أثناء القراءة وبعدها.','Cards you make during and after reading will appear here.'],
+['لا شيء للمراجعة الآن','Nothing to review now'],['سأذكّرك حين يحين موعد البطاقة.','I\'ll remind you when a card is due.'],['متبقية','left'],['اضغط لتقلب البطاقة','Tap to flip the card'],['تذكّرتُ ✓','I remembered ✓'],['نسيتُ ↺','I forgot ↺'],
+['لا بأس، سنعود إليها غدًا 🌱','No worries, we\'ll come back to it tomorrow 🌱'],['المساحة','Storage'],['مستخدم','Used'],['ميجا من','MB of'],['جيجا','GB'],['ميجا','MB'],['متاحة','available'],['غير معروفة','Unknown'],['كتب ·','books ·'],['بطاقة','cards'],
+['🔒 التخزين دائم: لن يمسحه المتصفح','🔒 Storage is persistent: it won\'t be cleared'],['⚠️ التخزين غير محمي بعد','⚠️ Storage isn\'t protected yet'],['احمِ بياناتي','Protect my data'],['لا يمكن حساب المساحة في هذا المتصفح.','Storage can\'t be calculated here.'],
+['تم ✓ بياناتك محمية','Done ✓ your data is protected'],['المتصفح لم يوافق بعد — أضف التطبيق للشاشة الرئيسية ثم جرّب','The browser hasn\'t agreed yet — add the app to your home screen and try again'],['غير مدعوم هنا','Not supported here'],
+['🤍 عاجي ملكي','🤍 Royal ivory'],['🌙 ليلي ملكي','🌙 Royal night'],['📱 صوت الهاتف (مجاني)','📱 Phone voice (free)'],['✨ الذكاء الاصطناعي (أجمل)','✨ AI voice (nicer)'],['⚡ سريع','⚡ Fast'],['🧠 أعمق (أبطأ)','🧠 Deeper (slower)'],
+['أقرأ عند الضغط فقط','Read only when I tap'],['اقرأ الشروح تلقائيًا','Read explanations automatically'],['حُفظت الإعدادات ✓','Settings saved ✓'],['جارٍ الاختبار…','Testing…'],['جارٍ الاختبار مع','Testing with'],['✓ يعمل:','✓ Works:'],
+['أدخل المفتاح أولًا','Enter the key first'],['نُسخت البيانات ✓ الصقها في ملف أو رسالة لنفسك','Data copied ✓ paste it into a file or a message to yourself'],['انسخ هذا النص واحفظه:','Copy this text and save it:'],['أهلًا بك في أنيس 🌿','Welcome to Anis 🌿'],['أنت في المكتبة 📚','You\'re in the library 📚'],
+['أسبوعي في القراءة','My reading week'],['دقيقة قراءة','minutes read'],['أيام قرأتُ فيها','days I read'],['أكثر ما قرأت:','Most read:'],['أنيس — رفيقك في القراءة','Anis — Read with a Friend'],['أسبوعي في القراءة مع أنيس','My reading week with Anis'],
+['أنيس 🌿','Anis 🌿'],['مثال لاستعماله:','Example of use:'],['— بتبسيط أكثر:','— Simpler:'],['تذكّر هذا الشرح','Remember this explanation'],['أنا:','Me:'],['الخلاصة:','Summary:'],['نص تجريبي','Sample text'],['باقي','Only'],['دقيقة حتى','more minutes to']
+];
+var P=[
+[/مرّت (\d+) دقيقة\./g,'$1 minutes have passed.'],
+[/قرأنا معًا (\d+) دقيقة و(\d+) صفحة\./g,'We read together for $1 minutes and $2 pages.'],
+[/(\d+) من (\d+) دقائق · باقي (\d+) د/g,'$1 of $2 min · $3 min left'],
+[/الخطة المجانية · باقي (\S+) اليوم/g,'Free plan · $1 left today'],
+[/باقي (\d+) دقيقة حتى/g,'$1 more minutes until'],
+[/(\d+) من 7/g,'$1 of 7']
+];
+var M=new Map();D.forEach(function(p){var k=p[0].replace(/^[»\s]+|[«\s]+$/g,'').replace(/\s+/g,' ');if(k)M.set(k,p[1])});
+var keys=Array.from(M.keys()).sort(function(a,b){return b.length-a.length});
+var esc=function(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/ /g,'\\s+')};
+var AR=/[\u0600-\u06FF]/;
+var BIG=new RegExp('(?<![\\u0600-\\u06FF])(?:'+keys.map(esc).join('|')+')(?![\\u0600-\\u06FF])','g');
+function T(s){
+  if(!window.EN||s==null)return s;s=String(s);if(!AR.test(s))return s;
+  var k=s.trim().replace(/\s+/g,' ');if(M.has(k))return s.replace(s.trim(),M.get(k));
+  var out=s;P.forEach(function(p){out=out.replace(p[0],p[1])});
+  return out.split(/(«[^»]*»)/).map(function(seg){
+    if(seg.charAt(0)==='«'&&seg.charAt(seg.length-1)==='»'){var i=seg.slice(1,-1).trim();return M.has(i)?'«'+M.get(i)+'»':seg}
+    if(!AR.test(seg))return seg;
+    return seg.replace(BIG,function(m){return M.get(m.replace(/\s+/g,' '))||m}).replace(/،/g,',').replace(/؟/g,'?');
+  }).join('');
+}
+window.T=T;
+if(!window.EN)return;
+var SKIP='.notr,.answer,.msg,.textpage,.t,textarea,#rTitle,code,script,style,.b3d';
+function skip(el){if(!el)return true;var s=el.closest(SKIP);return !!s&&!el.closest('.dots')}
+function attrs(el){['placeholder','title'].forEach(function(a){var v=el.getAttribute&&el.getAttribute(a);if(v&&AR.test(v)){var t=T(v);if(t!==v)el.setAttribute(a,t)}})}
+function tr(n){
+  if(n.nodeType===3){if(!AR.test(n.nodeValue)||skip(n.parentElement))return;var t=T(n.nodeValue);if(t!==n.nodeValue)n.nodeValue=t;return}
+  if(n.nodeType===1&&n.tagName==='TEXTAREA'&&!n.closest('.notr'))attrs(n);
+  if(n.nodeType!==1||skip(n))return;attrs(n);
+  var w=document.createTreeWalker(n,5,null),x;while((x=w.nextNode())){if(x.nodeType===1){if(x.hasAttribute('placeholder')||x.hasAttribute('title'))if(!skip(x)||(x.tagName==='TEXTAREA'&&!x.closest('.notr')))attrs(x)}else if(AR.test(x.nodeValue)&&!skip(x.parentElement)){var t2=T(x.nodeValue);if(t2!==x.nodeValue)x.nodeValue=t2}}
+}
+new MutationObserver(function(ms){ms.forEach(function(m){if(m.type==='characterData')tr(m.target);else m.addedNodes.forEach(tr)})}).observe(document.documentElement,{childList:true,subtree:true,characterData:true});
+document.addEventListener('DOMContentLoaded',function(){tr(document.body)});
+})();

@@ -91,6 +91,15 @@ public class AnisVoicePlugin extends Plugin {
         return null;
     }
 
+    private Locale pickEnglish() {
+        if (tts == null || !ready) return null;
+        Locale[] ls = {Locale.US, Locale.UK, Locale.ENGLISH};
+        for (Locale l : ls) {
+            try { if (tts.isLanguageAvailable(l) >= TextToSpeech.LANG_AVAILABLE) return l; } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
     @PluginMethod
     public void status(PluginCall call) {
         JSObject r = new JSObject();
@@ -100,6 +109,7 @@ public class AnisVoicePlugin extends Plugin {
         Locale a = pickArabic();
         r.put("arabic", a != null);
         r.put("locale", a == null ? "" : a.toLanguageTag());
+        r.put("english", pickEnglish() != null);
         call.resolve(r);
     }
 
@@ -108,8 +118,9 @@ public class AnisVoicePlugin extends Plugin {
         String text = call.getString("text", "");
         Float rate = call.getFloat("rate", 0.95f);
         if (!ready || tts == null) { call.reject("NOT_READY"); return; }
-        Locale l = pickArabic();
-        if (l == null) { call.reject("NO_ARABIC"); return; }
+        String lang = call.getString("lang", "ar");
+        Locale l = "en".equals(lang) ? pickEnglish() : pickArabic();
+        if (l == null) { call.reject("en".equals(lang) ? "NO_ENGLISH" : "NO_ARABIC"); return; }
         tts.setLanguage(l);
         tts.setSpeechRate(rate == null ? 0.95f : rate);
         String id = UUID.randomUUID().toString();
