@@ -7,8 +7,8 @@ android {
         applicationId "com.gamyahmed.anis"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode Integer.parseInt(System.getenv('VERSION_CODE') ?: '1')
+        versionName System.getenv('VERSION_NAME') ?: '1.0'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -23,12 +23,21 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            // Google Play upload key (PKCS12, AES-256). Password comes from the GitHub secret UPLOAD_KEYSTORE_PASSWORD.
+            storeFile file('anis-upload.p12')
+            storeType 'pkcs12'
+            storePassword System.getenv('UPLOAD_KEYSTORE_PASSWORD') ?: ''
+            keyAlias 'anis-upload'
+            keyPassword System.getenv('UPLOAD_KEYSTORE_PASSWORD') ?: ''
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

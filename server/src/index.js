@@ -178,6 +178,10 @@ async function adminApi(req, env, path) {
     await env.DB.prepare('INSERT INTO grants (user_id,days,note,created) VALUES (?1,?2,?3,?4)').bind(u.id, days, body.note || '', now()).run();
     return json({ ok: true, email: u.email, premium_until: until });
   }
+  if (path === '/admin/api/reports') {
+    const r = await env.DB.prepare('SELECT id,email,reason,note,content,created FROM reports ORDER BY created DESC LIMIT 50').all();
+    return json({ reports: r.results });
+  }
   if (path === '/admin/api/revoke') {
     await env.DB.prepare('UPDATE users SET premium_until=0 WHERE email=?1').bind(String(body.email || '').toLowerCase()).run();
     return json({ ok: true });
@@ -204,7 +208,16 @@ export default {
           price_month: env.PRICE_MONTH, price_year: env.PRICE_YEAR,
           instapay: env.PAY_INSTAPAY || '', instapay_link: env.PAY_INSTAPAY_LINK || '', wallet: env.PAY_WALLET || '', whatsapp: env.WHATSAPP || '',
         });
-      if (path === '/privacy') return new Response(PRIVACY_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      if (path === '/privacy') return new Response(PRIVACY_HTML.replaceAll('{{EMAIL}}', env.SUPPORT_EMAIL || 'gamyahmed024@gmail.com'), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      if (path === '/delete-account') return new Response(DELETE_HTML.replaceAll('{{EMAIL}}', env.SUPPORT_EMAIL || 'gamyahmed024@gmail.com'), { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      if (path === '/report' && req.method === 'POST') {
+        const b = await req.json().catch(() => ({}));
+        const ru = await authUser(req, env).catch(() => null);
+        const clip = (v, n) => String(v || '').slice(0, n);
+        await env.DB.prepare('INSERT INTO reports (user_id,email,reason,note,content,created) VALUES (?1,?2,?3,?4,?5,?6)')
+          .bind(ru ? ru.id : null, ru ? ru.email : null, clip(b.reason, 40), clip(b.note, 600), clip(b.content, 4000), now()).run();
+        return json({ ok: true });
+      }
       if (path === '/admin') return new Response(ADMIN_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       if (path.startsWith('/admin/api/')) return adminApi(req, env, path);
 
@@ -248,21 +261,75 @@ export default {
   },
 };
 
-const PRIVACY_HTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>سياسة الخصوصية — أنيس</title>
-<style>body{font-family:system-ui,Tahoma,sans-serif;max-width:760px;margin:0 auto;padding:24px 18px;line-height:1.9;color:#1C2A24;background:#F6F0E2}h1{color:#1F4D3F}h2{color:#A87A2C;font-size:19px;margin-top:26px}</style></head><body>
-<h1>سياسة الخصوصية لتطبيق «أنيس — رفيق القراءة»</h1>
-<p>آخر تحديث: 2026</p>
+const PAGE_CSS = `<style>body{font-family:system-ui,Tahoma,sans-serif;max-width:760px;margin:0 auto;padding:24px 18px;line-height:1.9;color:#1C2A24;background:#F6F0E2}h1{color:#1F4D3F;line-height:1.4}h2{color:#A87A2C;font-size:19px;margin-top:26px}.en{direction:ltr;text-align:left;border-top:2px solid #E4D9BF;margin-top:40px;padding-top:10px}a{color:#1F4D3F}.box{background:#FFFDF7;border:1px solid #E4D9BF;border-radius:14px;padding:12px 16px}</style>`;
+const PRIVACY_HTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Privacy Policy — Anis: Read with a Friend · سياسة الخصوصية — أنيس</title>${PAGE_CSS}</head><body>
+<p><a href="#en">English version below ↓</a></p>
+<h1>سياسة الخصوصية لتطبيق «أنيس: اقرأ مع صديق»</h1>
+<p>آخر تحديث: 31 أكتوبر 2026 · المطوّر: عمر جمال (مصر)</p>
 <h2>ما الذي نجمعه؟</h2>
 <p>عند تسجيل الدخول بحساب جوجل نحصل فقط على: اسمك، وبريدك الإلكتروني، وصورة حسابك. لا نحصل أبدًا على كلمة سرّك.</p>
-<p>نحفظ أيضًا: نوع اشتراكك وتاريخ انتهائه، وعدد طلبات الشرح اليومية (لتطبيق الحد اليومي)، وسلسلة أيام استخدامك.</p>
-<h2>ما الذي لا نجمعه؟</h2>
-<p>كتبك وملفاتك وملاحظاتك ودفترك وبطاقاتك تبقى على هاتفك فقط. عند طلب شرح يُرسَل المقطع المحدد أو الصفحة إلى خدمة Google Gemini لمعالجته وإرجاع الشرح، ولا نخزّنه على خوادمنا.</p>
+<p>ونحفظ أيضًا: حالة اشتراكك وتاريخ انتهائه، وعدد طلبات الذكاء الاصطناعي اليومية (لتطبيق الحد اليومي)، وسلسلة أيام استخدامك.</p>
+<h2>كتبك ومحتواك</h2>
+<p>كتبك وملفاتك وملاحظاتك ودفترك وبطاقاتك محفوظة على هاتفك فقط ولا تُرفع إلى خوادمنا.</p>
+<p>عند طلبك شرحًا أو ترجمة أو أي ميزة ذكاء اصطناعي، يُرسَل المقطع الذي حددته (نصًا أو صورة) أو الصفحة الحالية عبر خادمنا إلى خدمة Google Gemini لمعالجته وإرجاع الرد. لا نخزّن هذا المحتوى على خوادمنا. وتعالجه Google وفق شروطها لخدمة Gemini API.</p>
+<h2>البلاغات</h2>
+<p>إذا أبلغت عن رد غير لائق من داخل التطبيق، نحفظ نص الرد وسبب البلاغ وبريدك (إن كنت مسجلًا) لمراجعته وتحسين الخدمة.</p>
+<h2>الأذونات</h2>
+<p>الميكروفون: فقط عند ضغطك زر الإملاء الصوتي لتحويل كلامك إلى نص. الإشعارات: فقط إن فعّلت التذكير اليومي.</p>
 <h2>كيف نستخدم بياناتك؟</h2>
-<p>لتشغيل حسابك واشتراكك والحد اليومي فقط. لا نبيع بياناتك ولا نشاركها مع أي جهة إعلانية.</p>
+<p>لتشغيل حسابك واشتراكك والحد اليومي فقط. لا نبيع بياناتك، ولا نشاركها مع أي جهة إعلانية، ولا نعرض إعلانات. تُنقل البيانات مشفّرة (HTTPS).</p>
+<h2>الأطفال</h2>
+<p>التطبيق غير موجّه للأطفال دون 13 عامًا.</p>
 <h2>حذف الحساب</h2>
-<p>يمكنك حذف حسابك وكل بياناته على خوادمنا في أي وقت من داخل التطبيق: الإعدادات ← «حذف حسابي». ويتم الحذف فورًا.</p>
+<p>يمكنك حذف حسابك وكل بياناته على خوادمنا في أي وقت من داخل التطبيق: الإعدادات ← «حذف حسابي»، ويتم الحذف فورًا. أو اطلب الحذف من صفحة <a href="/delete-account">حذف الحساب</a>.</p>
 <h2>التواصل</h2>
-<p>لأي سؤال: gamyahmed024@gmail.com</p>
+<p>{{EMAIL}}</p>
+<div class="en" id="en" dir="ltr">
+<h1>Privacy Policy — Anis: Read with a Friend</h1>
+<p>Last updated: October 31, 2026 · Developer: Omar Gamal (Egypt)</p>
+<h2>What we collect</h2>
+<p>When you sign in with Google we receive only your name, email address and profile picture. We never receive your password.</p>
+<p>We also store your subscription status and expiry date, your daily number of AI requests (to apply the daily limit), and your usage streak.</p>
+<h2>Your books and content</h2>
+<p>Your books, files, notes, notebook and cards are stored on your phone only and are not uploaded to our servers.</p>
+<p>When you request an explanation, translation or any AI feature, the passage you selected (text or image) or the current page is sent through our server to Google Gemini to generate the reply. We do not store this content on our servers. Google processes it under the Gemini API terms.</p>
+<h2>Reports</h2>
+<p>If you report an inappropriate reply from inside the app, we store the reply text, the reason and your email (if signed in) to review it and improve the service.</p>
+<h2>Permissions</h2>
+<p>Microphone: only when you tap the voice-dictation button, to turn your speech into text. Notifications: only if you turn on the daily reminder.</p>
+<h2>How we use your data</h2>
+<p>Only to run your account, subscription and daily limit. We do not sell your data, share it with advertisers, or show ads. Data is encrypted in transit (HTTPS).</p>
+<h2>Children</h2>
+<p>The app is not directed to children under 13.</p>
+<h2>Account deletion</h2>
+<p>You can delete your account and all its data on our servers at any time in the app: Settings → “Delete my account”. Deletion is immediate. You can also request it on the <a href="/delete-account">account deletion page</a>.</p>
+<h2>Contact</h2>
+<p>{{EMAIL}}</p>
+</div>
+</body></html>`;
+const DELETE_HTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Delete your account — Anis · حذف الحساب — أنيس</title>${PAGE_CSS}</head><body>
+<h1>حذف حسابك في «أنيس: اقرأ مع صديق»</h1>
+<div class="box">
+<h2 style="margin-top:6px">الطريقة الأسرع: من داخل التطبيق</h2>
+<ol><li>افتح التطبيق ← <b>الإعدادات</b>.</li><li>في بطاقة «حسابك» اضغط <b>حذف حسابي</b>.</li><li>اضغط <b>نعم، احذف حسابي</b>.</li></ol>
+<h2>أو اطلب الحذف بالبريد</h2>
+<p>أرسل رسالة إلى <a href="mailto:{{EMAIL}}?subject=Delete%20my%20Anis%20account">{{EMAIL}}</a> من نفس البريد المسجّل في التطبيق بعنوان «حذف حسابي»، وسنحذفه خلال 7 أيام كحد أقصى.</p>
+</div>
+<h2>ما الذي يُحذف؟</h2>
+<p>كل بياناتك على خوادمنا: الاسم والبريد والصورة، والاشتراك، وسجل الاستخدام اليومي، وجلسات الدخول. لا نحتفظ بأي نسخة منها بعد الحذف.</p>
+<p>كتبك ودفترك وبطاقاتك محفوظة على هاتفك فقط، وتُحذف بحذف التطبيق.</p>
+<div class="en" dir="ltr">
+<h1>Delete your “Anis: Read with a Friend” account</h1>
+<div class="box">
+<h2 style="margin-top:6px">Fastest: inside the app</h2>
+<ol><li>Open the app → <b>Settings</b>.</li><li>In the “Your account” card tap <b>Delete my account</b>.</li><li>Tap <b>Yes, delete my account</b>.</li></ol>
+<h2>Or request deletion by email</h2>
+<p>Email <a href="mailto:{{EMAIL}}?subject=Delete%20my%20Anis%20account">{{EMAIL}}</a> from the email address you use in the app, with the subject “Delete my account”. We will delete it within 7 days at most.</p>
+</div>
+<h2>What is deleted?</h2>
+<p>All your data on our servers: name, email and picture, subscription, daily usage history and sign-in sessions. We keep no copy after deletion.</p>
+<p>Your books, notebook and cards are stored only on your phone and are removed when you uninstall the app.</p>
+</div>
 </body></html>`;
 
 const ADMIN_HTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>لوحة تحكم أنيس</title>
@@ -291,6 +358,7 @@ button.g{background:linear-gradient(135deg,#C9973F,#E3C27A);color:#14201B}button
 <input id="em" type="email" placeholder="name@gmail.com" dir="ltr"><div style="height:8px"></div>
 <input id="note" placeholder="ملاحظة (اختياري): مثلًا إنستاباي 49ج"><div style="height:8px"></div>
 <div class="row"><button class="g" onclick="grant(30)">فعّل شهر</button><button class="g" onclick="grant(365)">فعّل سنة</button><button onclick="grant(7)">أسبوع تجربة</button><button class="r" onclick="revoke()">إلغاء الاشتراك</button></div></div>
+<div class="card"><div class="row"><b style="flex:1">🚩 بلاغات عن ردود أنيس</b><button onclick="reps()">عرض</button></div><div id="rl" class="muted" style="margin-top:6px">اضغط «عرض» لرؤية آخر البلاغات.</div></div>
 <div class="card"><div class="row"><input id="q" placeholder="ابحث بالبريد أو الاسم…" oninput="clearTimeout(window.t);window.t=setTimeout(load,300)" style="flex:1"></div><div id="list"></div></div>
 </div></div><div id="msg"></div>
 <script>
@@ -303,5 +371,6 @@ async function stats(){const s=await api('/admin/api/stats');s1.textContent=s.us
 async function load(){const d=await api('/admin/api/users?q='+encodeURIComponent(q.value));list.innerHTML=d.users.length?d.users.map(u=>{const p=u.premium_until>Date.now();return '<div class="u"><div class="row"><b style="flex:1" dir="ltr">'+u.email+'</b><span class="pill '+(p?'p':'')+'">'+(p?'مميّز حتى '+fmt(u.premium_until):'مجاني')+'</span></div><div class="muted">'+(u.name||'')+' · آخر ظهور '+fmt(u.last_seen)+' · سلسلة '+(u.streak||0)+' يوم</div><div class="row" style="margin-top:6px"><button class="g" onclick="em.value=\\''+u.email+'\\';grant(30)">+ شهر</button><button onclick="em.value=\\''+u.email+'\\';window.scrollTo(0,0)">تحديد</button></div></div>'}).join(''):'<div class="muted" style="padding:10px 0">لا يوجد مستخدمون بعد.</div>'}
 async function grant(days){const e=em.value.trim();if(!e)return msg('اكتب البريد أولًا');try{const r=await api('/admin/api/grant',{email:e,days,note:note.value});msg('تم ✓ مميّز حتى '+fmt(r.premium_until));note.value='';stats();load()}catch(x){msg('خطأ: '+x.message)}}
 async function revoke(){const e=em.value.trim();if(!e)return msg('اكتب البريد أولًا');if(!confirm('إلغاء اشتراك '+e+'؟'))return;await api('/admin/api/revoke',{email:e});msg('أُلغي الاشتراك');stats();load()}
+async function reps(){const d=await api('/admin/api/reports');const e=s=>String(s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));rl.innerHTML=d.reports.length?d.reports.map(r=>'<div class="u"><div class="row"><span class="pill">'+e(r.reason)+'</span><span class="muted" style="flex:1">'+fmt(r.created)+' · '+e(r.email||'بدون حساب')+'</span></div>'+(r.note?'<div>'+e(r.note)+'</div>':'')+'<div class="muted" style="white-space:pre-wrap;max-height:160px;overflow:auto;margin-top:4px">'+e(r.content)+'</div></div>').join(''):'لا بلاغات 🌿'}
 if(PW)enter();
 </script></body></html>`;
