@@ -577,7 +577,7 @@ function streak(){const days=new Set(S.sessions.map(s=>s.date));let n=0;let d=ne
 const dueCards=()=>S.cards.filter(c=>(c.due||0)<=Date.now());
 function renderHome(){
   const h=new Date().getHours();
-  $('greet').textContent=(h<12?'صباح الخير':h<18?'مساء النور':'مساء الهدوء')+'';
+  $('greet').textContent='السلام عليكم';
   const last=S.sessions[S.sessions.length-1];
   $('greetSub').textContent= last? `${name()} هنا. آخر مرة قرأنا ${last.min} دقيقة في «${last.title}».` : `أنا ${name()}، اختر كتابًا وسأجلس معك.`;
   $('stStreak').textContent=streak(); $('stMin').textContent=S.sessions.reduce((a,s)=>a+s.min,0); const due=dueCards().length; $('stDue').textContent=due;
