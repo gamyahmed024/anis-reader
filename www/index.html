@@ -150,6 +150,18 @@ body.glow #pdfCanvas{filter:sepia(.35) brightness(.82) contrast(1.05)}
 .end-overlay.on{display:flex}
 
 /* ===================== LUXURY 3D LAYER ===================== */
+.gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff!important;color:#1C2A24!important;border:1px solid #E4D9BF!important;font-weight:700;padding:14px}
+body.glow .gbtn{background:#F6F0E2!important}
+.qpill{margin-top:12px;display:flex;align-items:center;gap:8px;justify-content:space-between;padding:10px 14px;border-radius:16px;background:rgba(233,207,143,.14);border:1px solid rgba(233,207,143,.35);color:#F6E7C1;font-size:14px;cursor:pointer}
+.qpill b{color:#E9CF8F}.qpill .up{background:linear-gradient(135deg,#F3DFA8,#C9973F);color:#14201B;border-radius:99px;padding:4px 12px;font-size:12.5px;font-weight:700}
+.acct{display:flex;gap:12px;align-items:center}.acct img,.acct .av{width:52px;height:52px;border-radius:50%;border:2px solid #C9A24D;object-fit:cover;display:grid;place-items:center;background:var(--accent-soft);font-size:22px}
+.crown{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;background:linear-gradient(135deg,#F3DFA8,#C9973F);color:#14201B}
+.plan{border:1.5px solid var(--line);border-radius:18px;padding:14px;cursor:pointer;position:relative}.plan.on{border-color:#C9A24D;box-shadow:0 0 0 3px rgba(201,162,77,.18)}
+.plan .pr{font-family:Amiri,serif;font-size:28px;color:var(--accent);font-weight:700}
+.paybox{display:flex;align-items:center;gap:8px;justify-content:space-between;background:var(--paper);border:1px dashed #C9A24D;border-radius:14px;padding:10px 12px;margin-top:8px}
+.paybox code{font-size:17px;direction:ltr;letter-spacing:.5px}
+details.adv{margin-top:18px;border:1px solid var(--line);border-radius:16px;padding:10px 14px;background:var(--card)}details.adv summary{cursor:pointer;color:var(--muted);font-size:14px}
+
 body{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23A87A2C' stroke-opacity='.09' stroke-width='1'%3E%3Crect x='21' y='21' width='30' height='30'/%3E%3Crect x='21' y='21' width='30' height='30' transform='rotate(45 36 36)'/%3E%3Ccircle cx='36' cy='36' r='8'/%3E%3Cpath d='M0 0L21 21M72 0L51 21M0 72L21 51M72 72L51 51'/%3E%3C/g%3E%3C/svg%3E");background-size:72px}
 body.glow{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23D4A64A' stroke-opacity='.06' stroke-width='1'%3E%3Crect x='21' y='21' width='30' height='30'/%3E%3Crect x='21' y='21' width='30' height='30' transform='rotate(45 36 36)'/%3E%3Ccircle cx='36' cy='36' r='8'/%3E%3Cpath d='M0 0L21 21M72 0L51 21M0 72L21 51M72 72L51 51'/%3E%3C/g%3E%3C/svg%3E")}
 .screen{padding-bottom:130px}
@@ -223,6 +235,7 @@ body.glow .tabbar{background:rgba(19,33,28,.82);border-color:rgba(212,166,74,.25
     <div class="stat"><b id="stMin">0</b><span class="muted">دقيقة قراءة</span></div>
     <div class="stat"><b id="stDue">0</b><span class="muted">بطاقة للمراجعة</span></div>
   </div>
+  <div id="quotaPill" class="qpill" style="display:none" onclick="openPremium()"></div>
   </div>
   <div id="dueBox" style="margin-top:12px;display:none">
     <button class="soft" style="width:100%" onclick="go('review')">🗂️ راجع بطاقاتك اليوم (<span id="dueN"></span>)</button>
@@ -237,6 +250,10 @@ body.glow .tabbar{background:rgba(19,33,28,.82);border-color:rgba(212,166,74,.25
   <input type="file" id="fileIn" multiple accept=".pdf,.txt,application/pdf,text/plain" style="display:none">
   <div id="noKey" class="card" style="margin-top:18px;display:none">
     <b>شغّل عقل أنيس ✨</b>
+    <div class="muted" style="margin:6px 0 10px">ادخل بحساب جوجل لتحصل على شروح أنيس مجانًا كل يوم 🎁</div>
+    <button class="gbtn" onclick="doGoogleLogin()"><svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg> الدخول بحساب جوجل</button>
+  </div>
+  <div id="oldNoKey" style="display:none">
     <div class="muted" style="margin:6px 0 10px">التطبيق يعمل كقارئ بدون مفتاح، لكن الشرح والمحاورة يحتاجان مفتاح Gemini API (مجاني من Google AI Studio).</div>
     <button class="soft" onclick="go('settings')">إضافة المفتاح</button>
   </div>
@@ -312,12 +329,17 @@ body.glow .tabbar{background:rgba(19,33,28,.82);border-color:rgba(212,166,74,.25
 
 <section id="settings" class="screen">
   <h1>الإعدادات</h1>
+  <div id="acctBox"></div>
+  <details class="adv"><summary>إعدادات متقدمة (مفتاحك الخاص)</summary>
+  <div class="muted" style="margin:6px 0">اختياري: لو وضعت مفتاح Gemini الخاص بك يستخدمه أنيس مباشرة بدون حدود الحساب.</div>
   <h2>مفتاح Gemini API</h2>
   <input id="keyIn" type="password" placeholder="AIza…" autocomplete="off">
   <div class="muted" style="margin-top:6px">احصل عليه مجانًا من aistudio.google.com ← Get API key. يُحفظ على جهازك فقط.</div>
   <h2>النموذج</h2>
   <input id="modelIn" placeholder="gemini-flash-latest">
   <div class="muted" style="margin-top:6px">الافتراضي gemini-flash-latest (أحدث Flash تلقائيًا).</div>
+  <div class="row" style="margin-top:12px"><button class="ghost grow" onclick="saveSettings()">حفظ</button><button class="ghost" onclick="testKey()">اختبار</button></div>
+  </details>
   <h2>أسلوب الشرح</h2>
   <div id="styleChips"></div>
   <h2>صوت أنيس</h2>
@@ -411,13 +433,16 @@ function pcmToWav(b64,rate=24000){const bin=atob(b64);const n=bin.length;const b
   const u8=new Uint8Array(buf,44);for(let i=0;i<n;i++)u8[i]=bin.charCodeAt(i);return new Blob([buf],{type:'audio/wav'})}
 const gVoice=()=>S.settings.gvoice||'Charon';
 async function geminiAudio(t){
-  if(!S.settings.key)throw new Error('NOVOICE');
+  if(!S.settings.key&&!(S.auth&&S.auth.token))throw new Error('NOVOICE');
   let lastErr='';
   for(const model of ['gemini-3.8-flash-tts','gemini-2.5-flash-preview-tts']){
-    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':S.settings.key},
+    const route=aiRoute(model,'generateContent');
+    const r=await fetch(route.url,{method:'POST',headers:route.headers,
       body:JSON.stringify({contents:[{parts:[{text:'اقرأ بصوت دافئ هادئ وبفصحى واضحة متأنية: '+t.slice(0,3000)}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:gVoice()}}}}})}).catch(e=>null);
     if(!r){lastErr='لا اتصال بالإنترنت';continue}
-    const d=await r.json().catch(()=>({}));if(!r.ok){lastErr=d?.error?.message||('HTTP '+r.status);continue}
+    const d=await r.json().catch(()=>({}));
+    if(route.server){if(r.ok)noteRemaining(r);else await serverErr(r,d)}
+    if(!r.ok){lastErr=d?.error?.message||d?.error||('HTTP '+r.status);continue}
     const part=(d.candidates?.[0]?.content?.parts||[]).find(p=>p.inlineData||p.inline_data);const id=part&&(part.inlineData||part.inline_data);if(!id)continue;
     const m=/rate=(\d+)/.exec(id.mimeType||id.mime_type||'');return URL.createObjectURL(pcmToWav(id.data,m?+m[1]:24000));
   }
@@ -430,7 +455,7 @@ async function speak(text,btn){
   if(RA)await stopReadPage();
   await stopSpeak();
   let mode=await voiceMode(S.settings.explainVoice||'device');
-  if(mode==='ai-fallback'){if(!S.settings.key){openSheet(`<b>لا يوجد صوت عربي على هاتفك بعد 🔈</b><p class="muted" style="line-height:1.8">حمّل الصوت العربي المجاني من جوجل (مرة واحدة، ويعمل بلا إنترنت).</p><button style="width:100%" onclick="closeSheet();openVoiceInstall()">⬇️ تحميل الصوت العربي</button>`);return}
+  if(mode==='ai-fallback'){if(!hasAI()){openSheet(`<b>لا يوجد صوت عربي على هاتفك بعد 🔈</b><p class="muted" style="line-height:1.8">حمّل الصوت العربي المجاني من جوجل (مرة واحدة، ويعمل بلا إنترنت).</p><button style="width:100%" onclick="closeSheet();openVoiceInstall()">⬇️ تحميل الصوت العربي</button>`);return}
     if(!S.voiceHint){S.voiceHint=1;save();toast('هاتفك بلا صوت عربي بعد — سأقرأ بصوت الذكاء الاصطناعي. للصوت المجاني: الإعدادات ← «تحميل الصوت العربي»',7000)}mode='ai'}
   speakingBtn=btn||null;
   try{await playText(text,mode)}catch(e){toast('تعذّرت القراءة الصوتية: '+(e.message||'').slice(0,80),6000)}
@@ -519,17 +544,26 @@ async function gemini(contents,opts={}){
   }
   throw new Error('خوادم Gemini مزدحمة الآن على كل النماذج، جرّب بعد دقيقة.');
 }
+const SERVER='https://anis.anis-reader.workers.dev';
+const hasAI=()=>!!(S.settings.key||(S.auth&&S.auth.token));
+function aiRoute(model,method){const stream=method==='streamGenerateContent';
+  if(S.settings.key)return{url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:${method}${stream?'?alt=sse':''}`,headers:{'Content-Type':'application/json','x-goog-api-key':S.settings.key}};
+  if(S.auth&&S.auth.token)return{url:`${SERVER}/ai/${encodeURIComponent(model+':'+method)}`,headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.auth.token},server:true};
+  throw new Error('LOGIN')}
+function noteRemaining(r){const v=r.headers&&r.headers.get&&r.headers.get('X-Anis-Remaining');if(v!=null&&S.acct){S.acct.remaining=+v;save();renderQuota()}}
+async function serverErr(r,d){if(r.status===401&&d&&d.code==='AUTH'){S.auth=null;S.acct=null;save();throw new Error('LOGIN')}if(r.status===429&&d&&d.code==='QUOTA'){if(d.status){S.acct=d.status;save();renderQuota()}throw new Error('QUOTA')}}
 const noThink=new Set();
 async function geminiOnce(model,contents,{json=false,system,onText}={}){
-  const key=S.settings.key; if(!key) throw new Error('NOKEY');
+  const route=aiRoute(model,onText?'streamGenerateContent':'generateContent');
   const body={systemInstruction:{parts:[{text:system||persona()}]},contents,generationConfig:{}};
   if(json) body.generationConfig.responseMimeType='application/json';
   if(/gemini-3|latest/.test(model)&&!/lite/.test(model)&&!noThink.has(model)) body.generationConfig.thinkingConfig={thinkingLevel:'low'};
   if(window.onTry) try{onTry(model)}catch(e){}
   const ctl=new AbortController(); const to=setTimeout(()=>ctl.abort(),45000);
   let r;
-  try{ r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:${onText?'streamGenerateContent?alt=sse':'generateContent'}`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body),signal:ctl.signal}); }
+  try{ r=await fetch(route.url,{method:'POST',headers:route.headers,body:JSON.stringify(body),signal:ctl.signal}); }
   catch(e){ clearTimeout(to); if(e.name==='AbortError'){const er=new Error('تأخر الرد كثيرًا');er.busy=true;throw er} throw new Error('لا يمكن الاتصال بـ Gemini. تأكد من اتصالك بالإنترنت ثم أعد المحاولة.'); }
+  if(route.server){if(r.ok)noteRemaining(r);else{const d0=await r.clone().json().catch(()=>null);await serverErr(r,d0)}}
   if(onText&&r.ok&&r.body&&r.body.getReader){
     const rd=r.body.getReader(),dec=new TextDecoder();let buf='',full='',raw='';
     try{for(;;){const {value,done}=await rd.read();if(done)break;const chunk=dec.decode(value,{stream:true});raw+=chunk;buf+=chunk;let i;while((i=buf.indexOf('\n'))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!line.startsWith('data:'))continue;
@@ -545,7 +579,7 @@ async function geminiOnce(model,contents,{json=false,system,onText}={}){
   if(!txt) throw new Error('لم يصل رد');
   return txt;
 }
-function aiErr(e){ if(e.message==='NOKEY'){openSheet(`<b>أحتاج مفتاح Gemini لأفكّر معك 🔑</b><p class="muted">أضفه من الإعدادات، ويمكنك متابعة القراءة الآن.</p><button onclick="closeSheet()">حسنًا</button>`);} else toast('خطأ: '+e.message.slice(0,90),5000); mood(); }
+function aiErr(e){ if(e.message==='NOKEY'||e.message==='LOGIN'){openLogin('سجّل دخولك بحساب جوجل ليفكّر أنيس معك ✨');} else if(e.message==='QUOTA'){openPremium(true);} else toast('خطأ: '+e.message.slice(0,90),5000); mood(); }
 function pj(t){t=String(t).replace(/```json|```/g,'');try{return JSON.parse(t)}catch(e){const m=t.match(/\{[\s\S]*\}/);if(m)return JSON.parse(m[0]);throw new Error('رد غير مفهوم، أعد المحاولة')}}
 const imgPart=dataUrl=>({inline_data:{mime_type:'image/jpeg',data:dataUrl.split(',')[1]}});
 
@@ -580,9 +614,9 @@ function renderHome(){
   $('greet').textContent='السلام عليكم';
   const last=S.sessions[S.sessions.length-1];
   $('greetSub').textContent= last? `${name()} هنا. آخر مرة قرأنا ${last.min} دقيقة في «${last.title}».` : `أنا ${name()}، اختر كتابًا وسأجلس معك.`;
-  $('stStreak').textContent=streak(); $('stMin').textContent=S.sessions.reduce((a,s)=>a+s.min,0); const due=dueCards().length; $('stDue').textContent=due;
+  $('stStreak').textContent=Math.max(streak(),(S.acct&&S.auth&&S.acct.streak)||0); $('stMin').textContent=S.sessions.reduce((a,s)=>a+s.min,0); const due=dueCards().length; $('stDue').textContent=due;
   $('dueBox').style.display=due?'block':'none'; $('dueN').textContent=due;
-  $('noKey').style.display=S.settings.key?'none':'block';
+  $('noKey').style.display=hasAI()?'none':'block';renderQuota();
   S.folders=S.folders||[]; if(curFolder&&!S.folders.find(f=>f.id===curFolder))curFolder=null;
   const F=$('folders'), L=$('library');
   if(curFolder){
@@ -784,14 +818,14 @@ function toDebrief(){
 let msgN=0;function addMsg(who,t){const d=document.createElement('div');d.className='msg '+who;d.innerHTML=who==='a'?fmtAns(t):esc(t);if(who==='a'){d.id='m'+(++msgN);d.addEventListener('click',()=>speak(d.innerText,null))}$('chat').appendChild(d);d.scrollIntoView({behavior:'smooth',block:'end'});return d}
 async function sendChat(){const t=$('chatIn').value.trim();if(!t)return;$('chatIn').value='';addMsg('u',t);R.chat.push({role:'user',parts:[{text:t}]});
   const turns=R.chat.filter(m=>m.role==='user').length;
-  if(!S.settings.key){const fb=['جميل! وما المثال الذي يوضح هذه الفكرة؟','وهل تتفق مع الكاتب؟ لماذا؟','رائع. لو أردت أن تطبّق هذه الفكرة غدًا، ماذا ستفعل؟'][Math.min(turns-1,2)];addMsg('a',fb);R.chat.push({role:'model',parts:[{text:fb}]});return}
+  if(!hasAI()){const fb=['جميل! وما المثال الذي يوضح هذه الفكرة؟','وهل تتفق مع الكاتب؟ لماذا؟','رائع. لو أردت أن تطبّق هذه الفكرة غدًا، ماذا ستفعل؟'][Math.min(turns-1,2)];addMsg('a',fb);R.chat.push({role:'model',parts:[{text:fb}]});return}
   const w=addMsg('a','');w.innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');
   try{const contents=[{role:'user',parts:[...contextParts(),{text:'(هذا ما قرأتُه. ابدأ المحاورة.)'}]},{role:'model',parts:[{text:'حسنًا.'}]},...R.chat];
     let out=await gemini(contents,{fast:true,onText:t=>{w.innerHTML=fmtAns(t);w.scrollIntoView({block:'end'})},system:debSystem()+(turns>=4?'\nهذه آخر جولة: اختم بتشجيع واقترح عليه الضغط على «لخّص وأنشئ البطاقات».':'')});mood();w.innerHTML=fmtAns(out);R.chat.push({role:'model',parts:[{text:out}]});if(S.settings.autoRead)speak(w.innerText,null)}
   catch(e){w.remove();R.chat.pop();aiErr(e)}}
 async function finishDebrief(){
   const b=R.book;const userTalk=R.chat.filter(m=>m.role==='user').map(m=>m.parts[0].text).join('\n');
-  if(!S.settings.key){if(userTalk){b.notes=b.notes||[];b.notes.push({date:today(),page:b.pos+1,summary:userTalk.slice(0,600)});save()}return endAll('حفظتُ كلامك كملخص للجلسة 📝')}
+  if(!hasAI()){if(userTalk){b.notes=b.notes||[];b.notes.push({date:today(),page:b.pos+1,summary:userTalk.slice(0,600)});save()}return endAll('حفظتُ كلامك كملخص للجلسة 📝')}
   $('debBtns').innerHTML='<div class="muted dots" style="padding:10px">أكتب الملخص وأصنع البطاقات</div>';mood('thinking');
   try{const out=await gemini([{role:'user',parts:[...contextParts(),{text:`هذه محاورتنا:\n${R.chat.map(m=>(m.role==='user'?'القارئ: ':'أنت: ')+m.parts[0].text).join('\n')}\n\nأعد JSON فقط بهذا الشكل:\n{"summary":"ملخص الجلسة في 3–5 أسطر بصيغة المتكلم عن القارئ (فهمتُ أن…)، مع تصحيح أي فهم خاطئ ظهر","cards":[{"q":"سؤال فهم","a":"إجابة موجزة"}],"next":"جملة تشجيعية واحدة للجلسة القادمة"}\n${b.cardsOn===false?'اجعل cards مصفوفة فارغة [] (البطاقات متوقفة لهذا الكتاب).':'اجعل البطاقات 2 أو 3 فقط، تختبر الفهم لا الحفظ، وركّز على المواضع التي تعثّر فيها القارئ.'}`}]}],{json:true});
     const j=pj(out);j.cards=Array.isArray(j.cards)?j.cards:[];if(b.cardsOn!==false)j.cards.slice(0,3).forEach(c=>addCard(c.q,c.a,b.title,'fahm'));else j.cards=[];b.notes=b.notes||[];b.notes.push({date:today(),page:b.pos+1,summary:j.summary||''});save();saveDebriefJournal(j.summary||'');mood('happy');
@@ -824,7 +858,7 @@ function raBar(txt){let el=$('raBar');if(!el){el=document.createElement('div');e
 async function startReadPage(){if(RA)await stopReadPage();await stopSpeak();
   let mode=S.settings.readMode||'device';
   if(mode==='device'){const m=await voiceMode('device');if(m!=='device'){openSheet(`<b>صوت الهاتف العربي غير جاهز بعد 🔈</b><p class="muted" style="line-height:1.8">حمّل الصوت العربي من جوجل (مرة واحدة)، أو استخدم صوت الذكاء الاصطناعي الآن.</p><div class="row" style="gap:8px"><button class="grow" onclick="closeSheet();openVoiceInstall()">⬇️ تحميل الصوت العربي</button><button class="ghost" onclick="S.settings.readMode='ai';save();closeSheet();startReadPage()">✨ صوت الذكاء الاصطناعي</button></div>`);return}}
-  if((R.book.type==='pdf'||mode==='ai')&&!S.settings.key){aiErr(new Error('NOKEY'));return}
+  if((R.book.type==='pdf'||mode==='ai')&&!hasAI()){aiErr(new Error('LOGIN'));return}
   RA={on:true,mode,skip:false};
   if(soundOn&&ambGain&&AC)ambGain.gain.linearRampToValueAtTime(0.04,AC.currentTime+1);
   try{
@@ -841,6 +875,48 @@ async function startReadPage(){if(RA)await stopReadPage();await stopSpeak();
   RA=null;raBar(null);if(soundOn&&ambGain&&AC)ambGain.gain.linearRampToValueAtTime(0.16,AC.currentTime+2);}
 async function stopReadPage(){if(RA)RA.on=false;await stopSpeak();raBar(null)}
 async function raSkip(){if(!RA)return;RA.skip=true;await playerStop();speakStop=false}
+
+/* ================= account: Google login, quota, daily gift, premium ================= */
+const WEB_CLIENT_ID='515840717044-qs0beiqtoa27v359g6698io3ctbpp3ft.apps.googleusercontent.com';
+const SL=plug('SocialLogin');let slReady=false,CFG=null;
+async function api(path,opt={}){const h={'Content-Type':'application/json'};if(S.auth&&S.auth.token)h.Authorization='Bearer '+S.auth.token;const r=await fetch(SERVER+path,{method:opt.body?'POST':(opt.method||'GET'),headers:h,body:opt.body?JSON.stringify(opt.body):undefined});const d=await r.json().catch(()=>({}));if(r.status===401&&d.code==='AUTH'){S.auth=null;S.acct=null;save();renderAccount()}if(!r.ok)throw new Error(d.error||('HTTP '+r.status));return d}
+function openLogin(msg){openSheet(`<div style="text-align:center">${anisSVG()}<h2 style="margin:6px 0">${esc(msg||'أهلًا بك في أنيس')}</h2><div class="muted" style="line-height:1.8;margin-bottom:14px">ادخل بحسابك على جوجل لتحصل على <b>${(CFG&&CFG.free_daily)||10} شروح مجانية كل يوم</b>، و<b>هدية يومية</b> كلما رجعت 🎁</div><button class="gbtn" onclick="doGoogleLogin()"><svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg> الدخول بحساب جوجل</button><div class="muted" style="font-size:12px;margin-top:10px">نأخذ اسمك وبريدك فقط، ولا نرى كلمة سرّك أبدًا. <a href="${SERVER}/privacy" style="color:var(--accent)">سياسة الخصوصية</a></div><button class="ghost" style="margin-top:12px" onclick="closeSheet()">لاحقًا، أقرأ فقط</button></div>`)}
+async function doGoogleLogin(){
+  if(!SL){toast('الدخول بجوجل يعمل داخل التطبيق المثبّت على الهاتف',4000);return}
+  try{if(!slReady){await SL.initialize({google:{webClientId:WEB_CLIENT_ID}});slReady=true}
+    const res=await SL.login({provider:'google',options:{scopes:['email','profile']}});
+    const idToken=res?.result?.idToken;if(!idToken)throw new Error('لم يصل رمز الدخول من جوجل');
+    toast('جارٍ الدخول…');
+    const d=await api('/auth/google',{body:{idToken}});
+    S.auth={token:d.token,email:d.user.email,name:d.user.name,picture:d.user.picture};S.acct=d;save();closeSheet();
+    toast('أهلًا '+(d.user.name||'')+' 🌿',3000);renderAccount();renderHome();setTimeout(claimDaily,800);
+  }catch(e){const m=String(e&&e.message||e);if(/cancel/i.test(m))return;toast('تعذّر الدخول: '+m.slice(0,100),6000)}}
+async function refreshAccount(){if(!(S.auth&&S.auth.token))return;try{S.acct=await api('/me');save();renderAccount();renderQuota()}catch(e){}}
+async function claimDaily(){if(!(S.auth&&S.auth.token))return;try{const before=S.acct;if(before&&before.bonus_claimed&&S.lastGiftDay===today())return;const d=await api('/daily',{body:{}});const fresh=!(before&&before.bonus_claimed)||S.lastGiftDay!==today();S.acct=d;S.lastGiftDay=today();save();renderQuota();renderAccount();
+  if(fresh&&!d.premium)openSheet(`<div style="text-align:center">${anisSVG()}<h2 style="margin:6px 0">🎁 هديتك اليومية</h2><div style="font-size:17px;line-height:1.9"><b>+${(CFG&&CFG.daily_bonus)||2} شرح</b> إضافي لليوم لأنك رجعت لأنيس</div><div class="muted" style="margin:8px 0 14px">🔥 سلسلتك: <b>${d.streak}</b> ${d.streak===1?'يوم':'أيام'} متتالية — لا تقطعها!</div><button style="width:100%" onclick="closeSheet()">شكرًا يا أنيس 🌿</button></div>`);
+  else if(fresh)toast('🔥 سلسلتك: '+d.streak+' يوم',2500)}catch(e){}}
+function renderQuota(){const el=$('quotaPill');if(!el)return;const a=S.acct;if(!(S.auth&&S.auth.token)||!a||S.settings.key){el.style.display='none';return}el.style.display='flex';
+  el.innerHTML=a.premium?`<span>👑 <b>أنيس المميّز</b> · شروح بلا قيود تقريبًا</span>`:`<span>✨ باقي لك <b>${a.remaining}</b> من ${a.limit} شروح اليوم${a.streak?` · 🔥 ${a.streak}`:''}</span><span class="up">ترقية</span>`}
+function renderAccount(){const el=$('acctBox');if(!el)return;const a=S.acct,u=S.auth;
+  if(!(u&&u.token)){el.innerHTML=`<div class="card" style="margin-top:12px"><b>حسابك</b><div class="muted" style="margin:6px 0 12px">ادخل لتحصل على الشروح المجانية اليومية والهدايا، ولتفعّل «أنيس المميّز».</div><button class="gbtn" onclick="doGoogleLogin()"><svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg> الدخول بحساب جوجل</button></div>`;return}
+  const until=a&&a.premium_until?new Date(a.premium_until).toLocaleDateString('ar-EG',{day:'numeric',month:'long',year:'numeric'}):'';
+  el.innerHTML=`<div class="card" style="margin-top:12px"><div class="acct">${u.picture?`<img src="${esc(u.picture)}" referrerpolicy="no-referrer">`:`<div class="av">${esc((u.name||u.email||'?').trim()[0])}</div>`}<div class="grow" style="min-width:0"><b>${esc(u.name||'')}</b><div class="muted" style="direction:ltr;text-align:right;overflow:hidden;text-overflow:ellipsis">${esc(u.email)}</div><div style="margin-top:4px">${a&&a.premium?`<span class="crown">👑 مميّز حتى ${until}</span>`:`<span class="chip" style="margin:0;padding:3px 10px;font-size:12px">الخطة المجانية · باقي ${a?a.remaining:'–'} اليوم</span>`}</div></div></div>
+  ${a&&a.premium?'':'<button style="width:100%;margin-top:12px" onclick="openPremium()">👑 اشترك في أنيس المميّز</button>'}<div class="row" style="margin-top:8px;gap:8px"><button class="ghost grow" onclick="logout()">تسجيل الخروج</button><button class="ghost" style="color:#b44" onclick="askDelete()">حذف حسابي</button></div></div>`}
+async function loadCfg(){if(CFG)return CFG;try{CFG=await api('/config')}catch(e){CFG={price_month:'49',price_year:'399',instapay:'',wallet:'',whatsapp:'',free_daily:10,daily_bonus:2}}return CFG}
+let planSel='month';
+async function openPremium(fromQuota){if(!(S.auth&&S.auth.token)){openLogin('ادخل أولًا لتشترك في أنيس المميّز');return}await loadCfg();const c=CFG,a=S.acct||{};
+  const feats=['شروح ومحاورات بلا قيود تقريبًا','صوت الذكاء الاصطناعي الجميل','قراءة الصفحات بصوت أنيس','دعم مستمر وميزات جديدة أولًا'];
+  const pay=(c.instapay||c.wallet)?`${c.instapay?`<div class="paybox"><div><div class="muted" style="font-size:12px">إنستاباي</div><code>${esc(c.instapay)}</code></div><button class="ghost" onclick="copyTxt('${esc(c.instapay)}')">${ic('copy',16)} نسخ</button></div>`:''}${c.wallet?`<div class="paybox"><div><div class="muted" style="font-size:12px">محفظة (فودافون كاش وغيرها)</div><code>${esc(c.wallet)}</code></div><button class="ghost" onclick="copyTxt('${esc(c.wallet)}')">${ic('copy',16)} نسخ</button></div>`:''}`:`<div class="muted" style="margin-top:8px">طرق الدفع ستُضاف قريبًا جدًا 🌿</div>`;
+  openSheet(`<div style="text-align:center"><div style="font-size:40px">👑</div><h2 style="margin:4px 0">أنيس المميّز</h2>${fromQuota?`<div class="muted" style="margin-bottom:6px">انتهت شروحك المجانية اليوم وتتجدد غدًا، أو اشترك الآن واقرأ بلا توقف.</div>`:''}</div>
+  <div class="card" style="margin:10px 0">${feats.map(f=>`<div style="padding:4px 0">✓ ${f}</div>`).join('')}</div>
+  <div class="row" style="gap:10px"><div class="plan grow ${planSel==='month'?'on':''}" onclick="planSel='month';openPremium(${!!fromQuota})"><div class="muted">شهري</div><div class="pr">${esc(c.price_month)} ج</div></div><div class="plan grow ${planSel==='year'?'on':''}" onclick="planSel='year';openPremium(${!!fromQuota})"><span class="crown" style="position:absolute;top:-10px;left:10px">وفّر ${Math.max(0,Math.round(100-(+c.price_year)/(12*(+c.price_month))*100))}%</span><div class="muted">سنوي</div><div class="pr">${esc(c.price_year)} ج</div></div></div>
+  <div style="margin-top:14px"><b>طريقة الاشتراك</b><div class="muted" style="line-height:1.8;margin-top:4px">١. حوّل ${esc(planSel==='year'?c.price_year:c.price_month)} جنيه على أحد الأرقام التالية.<br>٢. اضغط «أرسلت التحويل» وأرسل صورة التحويل على واتساب.<br>٣. يُفعَّل اشتراكك على بريدك <b style="direction:ltr;display:inline-block">${esc(S.auth.email)}</b> خلال وقت قصير.</div>${pay}</div>
+  ${c.whatsapp?`<button style="width:100%;margin-top:14px;padding:15px" onclick="sendProof()">📩 أرسلت التحويل (واتساب)</button>`:''}<button class="ghost" style="width:100%;margin-top:8px" onclick="closeSheet()">ليس الآن</button>`)}
+async function copyTxt(t){try{await navigator.clipboard.writeText(t);toast('نُسخ ✓')}catch(e){toast(t)}}
+function sendProof(){const c=CFG;const plan=planSel==='year'?('سنوي '+c.price_year):('شهري '+c.price_month);const msg=`السلام عليكم، حوّلت اشتراك «أنيس المميّز» (${plan} جنيه).\nبريدي في التطبيق: ${S.auth.email}\nمرفق صورة التحويل 👇`;const num=String(c.whatsapp).replace(/[^0-9]/g,'');location.href=`https://wa.me/${num}?text=${encodeURIComponent(msg)}`}
+async function logout(){try{await api('/logout',{body:{}})}catch(e){}try{SL&&await SL.logout({provider:'google'})}catch(e){}S.auth=null;S.acct=null;save();renderAccount();renderHome();toast('تم تسجيل الخروج')}
+function askDelete(){openSheet(`<b>حذف حسابك نهائيًا؟</b><p class="muted" style="line-height:1.8">سيُحذف حسابك واشتراكك وسجل استخدامك من خوادمنا فورًا. كتبك ودفترك وبطاقاتك على هاتفك تبقى كما هي.</p><div class="row"><button class="grow" style="background:#9b2d2d;color:#fff" onclick="reallyDeleteAcct()">نعم، احذف حسابي</button><button class="ghost grow" onclick="closeSheet()">تراجع</button></div>`)}
+async function reallyDeleteAcct(){try{await api('/account/delete',{body:{}});try{SL&&await SL.logout({provider:'google'})}catch(e){}S.auth=null;S.acct=null;save();closeSheet();renderAccount();renderHome();toast('حُذف حسابك')}catch(e){toast('تعذّر الحذف: '+e.message)}}
 
 /* ================= journal (دفتري) ================= */
 const JK={friend:'💬 شرح كصديق',life:'🌱 مثال من الحياة',irab:'✍️ إعراب',ask:'❓ سؤال',debrief:'🗣️ محاورة بعد الجلسة'};
@@ -886,7 +962,7 @@ async function copyNotebook(){const es=(S.journal||[]).filter(e=>e.bookId===jBoo
 function journalText(e){return e.kind==='debrief'?((e.chat||[]).map(m=>(m.w==='u'?'أنا: ':name()+': ')+m.t).join('\n')+(e.summary?'\n\nالخلاصة: '+e.summary:'')):((e.q?('«'+e.q+'»\n'):'')+e.a)}
 async function copyJournal(id){const e=S.journal.find(x=>x.id===id);const t=`${e.title}${e.page?' — ص '+e.page:''}\n${journalText(e)}`;try{await navigator.clipboard.writeText(t);toast('نُسخ ✓')}catch(_){openSheet(`<textarea style="min-height:260px">${esc(t)}</textarea>`)}}
 function delJournal(id){S.journal=S.journal.filter(x=>x.id!==id);delBlob('j_'+id);save();renderJournal();toast('حُذف من الدفتر')}
-async function journalCard(id){const e=S.journal.find(x=>x.id===id);if(!S.settings.key){addCard(e.q?('ما معنى: «'+e.q.slice(0,120)+'»؟'):'تذكّر هذا الشرح',e.a.slice(0,500),e.title,'fahm');return toast('أُضيفت البطاقة ✓')}
+async function journalCard(id){const e=S.journal.find(x=>x.id===id);if(!hasAI()){addCard(e.q?('ما معنى: «'+e.q.slice(0,120)+'»؟'):'تذكّر هذا الشرح',e.a.slice(0,500),e.title,'fahm');return toast('أُضيفت البطاقة ✓')}
   toast('أصنع البطاقة…');try{const out=await gemini([{role:'user',parts:[{text:'حوّل هذا الشرح إلى بطاقة استذكار واحدة تختبر الفهم. أعد JSON فقط: {"q":"…","a":"…"}\n\n'+journalText(e)}]}],{json:true});const c=pj(out);addCard(c.q,c.a,e.title,'fahm');toast('أُضيفت البطاقة 🗂️')}catch(err){aiErr(err)}}
 
 /* ================= flashcards (spaced repetition) ================= */
@@ -904,7 +980,7 @@ function grade(ok){const c=revQ.shift();const card=S.cards.find(x=>x.id===c.id);
 async function renderStorage(){const B=$('storeBox');try{const persisted=await navigator.storage?.persisted?.();const est=await navigator.storage?.estimate?.();const mb=x=>(x/1048576).toFixed(x>1048576*100?0:1);
   B.innerHTML=`<div class="row"><div class="grow"><b>المساحة</b><div class="muted">${est?`مستخدم ${mb(est.usage)} ميجا من ${est.quota>1073741824?(est.quota/1073741824).toFixed(1)+' جيجا':mb(est.quota)+' ميجا'} متاحة`:'غير معروفة'} · ${S.books.length} كتب · ${S.cards.length} بطاقة</div><div class="muted">${persisted?'🔒 التخزين دائم: لن يمسحه المتصفح':'⚠️ التخزين غير محمي بعد'}</div></div>${persisted?'':'<button class="soft" onclick="askPersist()">احمِ بياناتي</button>'}</div>`}catch(e){B.innerHTML='<span class="muted">لا يمكن حساب المساحة في هذا المتصفح.</span>'}}
 async function askPersist(){try{const ok=await navigator.storage.persist();toast(ok?'تم ✓ بياناتك محمية':'المتصفح لم يوافق بعد — أضف التطبيق للشاشة الرئيسية ثم جرّب');}catch(e){toast('غير مدعوم هنا')}renderStorage()}
-function renderSettings(){renderStorage();$('themeChips').innerHTML=[[false,'🤍 عاجي ملكي'],[true,'🌙 ليلي ملكي']].map(([k,l])=>`<span class="chip ${!!S.glow===k?'on':''}" onclick="S.glow=${k};document.body.classList.toggle('glow',${k});save();renderSettings()">${l}</span>`).join('');$('evChips').innerHTML=[['device','📱 صوت الهاتف (مجاني)'],['ai','✨ الذكاء الاصطناعي (أجمل)']].map(([k,l])=>`<span class="chip ${(S.settings.explainVoice||'device')===k?'on':''}" onclick="S.settings.explainVoice='${k}';save();renderSettings()">${l}</span>`).join('');$('speedChips').innerHTML=[['fast','⚡ سريع'],['deep','🧠 أعمق (أبطأ)']].map(([k,l])=>`<span class="chip ${(S.settings.speed||'fast')===k?'on':''}" onclick="S.settings.speed='${k}';save();renderSettings()">${l}</span>`).join('');$('gvChips').innerHTML=[['Charon','صوت رجل'],['Kore','صوت امرأة']].map(([v,l])=>`<span class="chip ${gVoice()===v?'on':''}" onclick="S.settings.gvoice='${v}';save();renderSettings()">${l}</span>`).join('');checkArabicVoice();$('rateIn').value=S.settings.rate||0.95;$('voiceChips').innerHTML=[[false,'أقرأ عند الضغط فقط'],[true,'اقرأ الشروح تلقائيًا']].map(([k,l])=>`<span class="chip ${!!S.settings.autoRead===k?'on':''}" onclick="S.settings.autoRead=${k};save();renderSettings()">${l}</span>`).join('');$('keyIn').value=S.settings.key;$('modelIn').value=S.settings.model;$('nameIn').value=S.settings.name;$('styleChips').innerHTML=[['fusha','فصحى مبسطة'],['mix','فصحى + لمسة عامية'],['ammiya','عامية مصرية']].map(([k,l])=>`<span class="chip ${S.settings.style===k?'on':''}" onclick="S.settings.style='${k}';renderSettings()">${l}</span>`).join('')}
+function renderSettings(){renderStorage();renderAccount();$('themeChips').innerHTML=[[false,'🤍 عاجي ملكي'],[true,'🌙 ليلي ملكي']].map(([k,l])=>`<span class="chip ${!!S.glow===k?'on':''}" onclick="S.glow=${k};document.body.classList.toggle('glow',${k});save();renderSettings()">${l}</span>`).join('');$('evChips').innerHTML=[['device','📱 صوت الهاتف (مجاني)'],['ai','✨ الذكاء الاصطناعي (أجمل)']].map(([k,l])=>`<span class="chip ${(S.settings.explainVoice||'device')===k?'on':''}" onclick="S.settings.explainVoice='${k}';save();renderSettings()">${l}</span>`).join('');$('speedChips').innerHTML=[['fast','⚡ سريع'],['deep','🧠 أعمق (أبطأ)']].map(([k,l])=>`<span class="chip ${(S.settings.speed||'fast')===k?'on':''}" onclick="S.settings.speed='${k}';save();renderSettings()">${l}</span>`).join('');$('gvChips').innerHTML=[['Charon','صوت رجل'],['Kore','صوت امرأة']].map(([v,l])=>`<span class="chip ${gVoice()===v?'on':''}" onclick="S.settings.gvoice='${v}';save();renderSettings()">${l}</span>`).join('');checkArabicVoice();$('rateIn').value=S.settings.rate||0.95;$('voiceChips').innerHTML=[[false,'أقرأ عند الضغط فقط'],[true,'اقرأ الشروح تلقائيًا']].map(([k,l])=>`<span class="chip ${!!S.settings.autoRead===k?'on':''}" onclick="S.settings.autoRead=${k};save();renderSettings()">${l}</span>`).join('');$('keyIn').value=S.settings.key;$('modelIn').value=S.settings.model;$('nameIn').value=S.settings.name;$('styleChips').innerHTML=[['fusha','فصحى مبسطة'],['mix','فصحى + لمسة عامية'],['ammiya','عامية مصرية']].map(([k,l])=>`<span class="chip ${S.settings.style===k?'on':''}" onclick="S.settings.style='${k}';renderSettings()">${l}</span>`).join('')}
 function saveSettings(){S.settings.key=$('keyIn').value.trim();S.settings.model=$('modelIn').value.trim()||'gemini-flash-latest';S.settings.name=$('nameIn').value.trim()||'أنيس';save();toast('حُفظت الإعدادات ✓')}
 async function testKey(){saveSettings();$('testOut').textContent='جارٍ الاختبار…';window.onTry=m=>$('testOut').textContent='جارٍ الاختبار مع '+m+' …';try{const o=await gemini([{role:'user',parts:[{text:'قل تحية قصيرة جدًا للقارئ في جملة واحدة.'}]}]);$('testOut').textContent='✓ يعمل: '+o}catch(e){$('testOut').textContent=e.message==='NOKEY'?'أدخل المفتاح أولًا':'✗ '+e.message}window.onTry=null}
 async function exportData(){const data=JSON.stringify({journal:S.journal,cards:S.cards,notes:S.books.map(b=>({title:b.title,notes:b.notes})),sessions:S.sessions},null,1);try{await navigator.clipboard.writeText(data);toast('نُسخت البيانات ✓ الصقها في ملف أو رسالة لنفسك')}catch(e){openSheet(`<b>انسخ هذا النص واحفظه:</b><textarea style="min-height:260px;margin-top:10px;direction:ltr">${esc(data)}</textarea>`)}}
@@ -912,6 +988,9 @@ async function exportData(){const data=JSON.stringify({journal:S.journal,cards:S
 /* ================= boot ================= */
 ensureSample().then(renderHome);
 if(location.protocol==='content:'&&!window.Capacitor)$('urlWarn').style.display='block';
+loadCfg();
+setTimeout(async()=>{if(S.auth&&S.auth.token){await refreshAccount();claimDaily()}else if(!S.settings.key&&!S.welcomed){S.welcomed=1;save();openLogin('أهلًا بك في أنيس 🌿')}},900);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.auth&&S.lastGiftDay!==today()){refreshAccount().then(claimDaily)}});
 try{navigator.storage?.persist?.()}catch(e){}
 /* Android back button: never leave the app by accident */
 history.replaceState({s:'home'},'');history.pushState({s:'guard'},'');

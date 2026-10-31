@@ -198,6 +198,12 @@ export default {
     const path = url.pathname.replace(/\/+$/, '') || '/';
     try {
       if (path === '/' || path === '/health') return json({ ok: true, name: 'anis', time: new Date().toISOString(), google: !!env.GOOGLE_CLIENT_IDS });
+      if (path === '/config')
+        return json({
+          free_daily: parseInt(env.FREE_DAILY, 10), daily_bonus: parseInt(env.DAILY_BONUS, 10),
+          price_month: env.PRICE_MONTH, price_year: env.PRICE_YEAR,
+          instapay: env.PAY_INSTAPAY || '', wallet: env.PAY_WALLET || '', whatsapp: env.WHATSAPP || '',
+        });
       if (path === '/privacy') return new Response(PRIVACY_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       if (path === '/admin') return new Response(ADMIN_HTML, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       if (path.startsWith('/admin/api/')) return adminApi(req, env, path);
