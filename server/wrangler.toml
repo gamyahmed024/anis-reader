@@ -9,9 +9,9 @@ database_name = "anis-db"
 database_id = "REPLACED_IN_CI"
 
 [vars]
-FREE_DAILY = "10"
+FREE_DAILY = "4"
 PREMIUM_DAILY = "300"
-DAILY_BONUS = "2"
+DAILY_BONUS = "1"
 GOOGLE_CLIENT_IDS = "515840717044-qs0beiqtoa27v359g6698io3ctbpp3ft.apps.googleusercontent.com"
 PRICE_MONTH = "49"
 PRICE_YEAR = "399"
