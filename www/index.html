@@ -885,7 +885,7 @@ function openLogin(msg){openSheet(`<div style="text-align:center">${anisSVG()}<h
 async function doGoogleLogin(){
   if(!SL){toast('الدخول بجوجل يعمل داخل التطبيق المثبّت على الهاتف',4000);return}
   try{if(!slReady){await SL.initialize({google:{webClientId:WEB_CLIENT_ID}});slReady=true}
-    const res=await SL.login({provider:'google',options:{scopes:['email','profile']}});
+    const res=await SL.login({provider:'google',options:{}});
     const idToken=res?.result?.idToken;if(!idToken)throw new Error('لم يصل رمز الدخول من جوجل');
     toast('جارٍ الدخول…');
     const d=await api('/auth/google',{body:{idToken}});
