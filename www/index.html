@@ -319,13 +319,6 @@ html[dir=ltr] .textpage{text-align:left;hyphens:auto}html[dir=ltr] .textpage p{t
     <button class="nav" onclick="turn(-1)">السابقة ›</button>
   </div>
   <div class="actbar" id="actbar">
-    <button onclick="aiAct('friend')">💬 اشرح لي كصديق</button>
-    <button onclick="aiAct('life')">🌱 مثال من الحياة</button>
-    <button onclick="aiAct('card')" class="soft">🗂️ بطاقة فهم</button>
-    <button onclick="$('actbar').classList.toggle('more')" class="soft" id="moreBtn">⋯ المزيد</button>
-    <button onclick="aiAct('irab')" class="mx" id="irabBtn">✍️ أعرب</button>
-    <button onclick="aiAct('tarkib')" class="soft mx">✨ تركيب أتملّكه</button>
-    <button onclick="clearSel()" class="ghost">إلغاء</button>
   </div>
 </section>
 
@@ -824,14 +817,23 @@ function toggleSelect(){selMode=!selMode;showChrome();$('selLayer').classList.to
     sel={kind:'img',data:c.toDataURL('image/jpeg',.8)};setIrabLabel(R.lang!=='en');$('actbar').classList.add('on')});
 })();
 document.addEventListener('selectionchange',()=>{if(!R||R.book.type!=='text'||!$('reader').classList.contains('on'))return;const t=String(getSelection()).trim();if(t.length>1&&$('textPage').contains(getSelection().anchorNode)){sel={kind:'text',data:t};setIrabLabel(isAr(t));$('actbar').classList.add('on')}});
-function setIrabLabel(ar){const b=$('irabBtn');if(b)b.textContent=ar?'✍️ أعرب':'🔍 حلّل الجملة'}
+/* smart selection bar: 3 main actions that fit the situation + «More» */
+let selLang='ar';
+function setIrabLabel(ar){selLang=ar?'ar':'en';const foreign=ar===EN;
+  const L={friend:'💬 اشرح لي كصديق',life:'🌱 مثال من الحياة',tr:foreign?'🌐 ترجم':(ar?'🌐 ترجم للإنجليزية':'🌐 ترجم للعربية'),words:'📖 الكلمات الصعبة',irab:ar?'✍️ أعرب':'🔍 حلّل الجملة',tashkeel:'🔤 شكّل النص',card:'🗂️ بطاقة فهم',tarkib:'✨ تركيب أتملّكه'};
+  const main=foreign?['friend','tr','words']:['friend','life','card'];
+  const more=['life','tr','words','irab',...(ar?['tashkeel']:[]),'card','tarkib'].filter(k=>!main.includes(k));
+  const b=(k,c)=>`<button onclick="aiAct('${k}')" class="${c||''}">${L[k]}</button>`;
+  $('actbar').innerHTML=main.map(k=>b(k)).join('')+`<button onclick="$('actbar').classList.toggle('more')" class="soft">⋯ المزيد</button>`+more.map(k=>b(k,'soft mx')).join('')+`<button onclick="clearSel()" class="ghost">إلغاء</button>`}
 function clearSel(){sel=null;$('actbar').classList.remove('on','more');$('selBox').style.display='none';try{getSelection().removeAllRanges()}catch(e){}}
 function selParts(prompt){const ctx=R.book.type==='text'?`\n\n(سياق الصفحة كاملة:\n${R.pageTexts[R.book.pos]})`:'';return sel.kind==='img'?[{text:prompt},imgPart(sel.data)]:[{text:prompt+`\n\nالمقطع المحدد:\n«${sel.data}»`+ctx}]}
 async function aiAct(kind){
-  if(!sel)return; const cur=sel; const P={
+  if(!sel)return; if(kind==='words')return wordsAct(); const cur=sel; const P={
     friend:'اشرح لي هذا المقطع كأنك صديقي الذي يجلس بجانبي: بسّطه في 3–5 جمل، ثم أعطني الفكرة في سطر واحد بخط عريض.',
     life:'أعطني مثالًا واحدًا قصيرًا من الحياة اليومية يوضّح فكرة هذا المقطع، ثم اربطه بالمقطع في جملة.',
     irab:'إن كان المقطع عربيًا: أعرب الجملة/الجمل الأساسية فيه إعرابًا مختصرًا واضحًا، ونبّه على أي موضع دقيق أو لطيفة بلاغية إن وُجدت. وإن كان بلغة أخرى: حلّل الجملة/الجمل الأساسية نحويًا تحليلًا مختصرًا واضحًا (أجزاء الجملة، الزمن، التراكيب الصعبة) بلغة الشرح.',
+    tr:`ترجم هذا المقطع إلى ${trTarget()} ترجمة دقيقة طبيعية تحافظ على المعنى والأسلوب. اكتب الترجمة نفسها بـ${trTarget()} حتى لو كانت لغة ردّك المعتادة غيرها. ثم سطر فارغ، ثم ملاحظة قصيرة جدًا (سطر واحد بلغة الشرح) عن أي تعبير اصطلاحي أو كلمة تُترجم بأكثر من معنى، إن وُجد.`,
+    tashkeel:'شكّل هذا المقطع العربي تشكيلًا تامًّا دقيقًا لكل الحروف، دون تغيير أو حذف أي كلمة، مع ضبط أواخر الكلمات بحسب إعرابها. أعد النص المشكول فقط بلا أي تعليق.',
     card:'حوّل فكرة هذا المقطع إلى بطاقة استذكار واحدة. أعد JSON فقط: {"q":"سؤال يختبر الفهم لا الحفظ","a":"إجابة موجزة"}',
     tarkib:'أريد أن أتملّك التركيب/العبارة الأجمل في هذا المقطع وأستعملها في كلامي. اختر أبلغ عبارة فيه (أو العبارة المحددة نفسها إن كانت قصيرة). أعد JSON فقط: {"q":"موقف أو معنى بصيغة سؤال: كيف تعبّر عن كذا بأسلوب فصيح؟","a":"العبارة كما هي في النص","use":"جملة جديدة من إنشائك تستعمل التركيب نفسه في سياق مختلف"}'}[kind];
   const thumb=cur.kind==='img'?`<img class="thumb" src="${cur.data}">`:`<div class="muted notr" style="margin-bottom:8px;font-family:Amiri;font-size:18px">«${esc(cur.data.slice(0,240))}»</div>`;
@@ -840,15 +842,30 @@ async function aiAct(kind){
   else openSheet(`<div class="hero">${anisSVG()}<b>${name()}</b></div><div style="margin-top:10px">${thumb}</div><div class="answer" id="ansTxt"><span class="dots muted">يقرأ المقطع</span></div><div class="row wrap" style="margin-top:14px;gap:8px"><button class="grow" onclick="closeSheet()">فهمت، أكمل 📖</button></div>`);
   mood('thinking');
   try{
-    const out=await gemini([{role:'user',parts:selParts(P)}],{json:isJson,fast:kind!=='irab'&&!isJson,onText:isJson?null:(t=>{const el=$('ansTxt');if(el)el.innerHTML=fmtAns(t)})}); mood();
+    const out=await gemini([{role:'user',parts:selParts(P)}],{json:isJson,fast:kind!=='irab'&&kind!=='tashkeel'&&!isJson,onText:isJson?null:(t=>{const el=$('ansTxt');if(el)el.innerHTML=fmtAns(t)})}); mood();
     R.selections.push({kind,text:cur.kind==='text'?cur.data:'(مقطع مصوّر)',out:out.slice(0,600)});
     if(kind!=='card'&&kind!=='tarkib')R.lastJ=addJournal({kind,q:cur.kind==='text'?cur.data:'',img:cur.kind==='img'?cur.data:null,a:out});
-    if(kind==='card'||kind==='tarkib'){const c=pj(out);const a=kind==='tarkib'&&c.use?`${c.a}\n\n${T('مثال لاستعماله:')} ${c.use}`:c.a;addCard(c.q,a,null,kind==='tarkib'?'tarkib':'fahm');openSheet(`<b>${kind==='tarkib'?'✨ حُفظ التركيب':'🗂️ حُفظت البطاقة'}</b><div class="card" style="margin:10px 0"><div>${esc(c.q)}</div><div class="muted answer" style="margin-top:6px">${esc(a)}</div></div><button style="width:100%" onclick="closeSheet()">أكمل القراءة</button>`)}
-    else openSheet(`<div class="hero">${anisSVG()}<b>${name()}</b></div><div style="margin-top:10px">${thumb}</div><div class="answer" id="ansTxt">${fmtAns(out)}</div><div class="row wrap" style="margin-top:14px;gap:8px"><button class="grow" onclick="closeSheet()">فهمت، أكمل 📖</button><button class="ghost" onclick="simpler()">بسّطها أكثر</button>${speakBtnHTML('ansTxt')}</div>`);autoSpeak('ansTxt');
+    if(kind==='card'||kind==='tarkib'){const c=pj(out);const a=kind==='tarkib'&&c.use?`${c.a}\n\n${T('مثال لاستعماله:')} ${c.use}`:c.a;addCard(c.q,a,null,kind==='tarkib'?'tarkib':'fahm');openSheet(`<b>${kind==='tarkib'?'✨ حُفظ التركيب':'🗂️ حُفظت البطاقة'}</b><div class="card" style="margin:10px 0"><div dir="auto">${esc(c.q)}</div><div class="muted answer" style="margin-top:6px">${esc(a)}</div></div><button style="width:100%" onclick="closeSheet()">أكمل القراءة</button>`)}
+    else openSheet(`<div class="hero">${anisSVG()}<b>${name()}</b></div><div style="margin-top:10px">${kind==='tashkeel'?'':thumb}</div><div class="answer" id="ansTxt" ${kind==='tashkeel'?'style="font-family:Amiri;font-size:23px;line-height:2"':''}>${fmtAns(out)}</div><div class="row wrap" style="margin-top:14px;gap:8px"><button class="grow" onclick="closeSheet()">فهمت، أكمل 📖</button><button class="ghost" onclick="simpler()">بسّطها أكثر</button>${speakBtnHTML('ansTxt')}</div>`);autoSpeak('ansTxt');
     R.lastQ={parts:selParts(P),out};
   }catch(e){closeSheet();aiErr(e)}
   clearSel(); if(selMode)toggleSelect();
 }
+const trTarget=()=>(selLang==='ar')===EN?(EN?'الإنجليزية':'العربية'):(selLang==='ar'?'الإنجليزية':'العربية');
+let WRD=[];
+async function wordsAct(){const cur=sel;const ui=EN?'الإنجليزية':'العربية';
+  const thumb=cur.kind==='img'?`<img class="thumb" src="${cur.data}">`:`<div class="muted notr" style="margin-bottom:8px;font-family:Amiri;font-size:18px">«${esc(cur.data.slice(0,240))}»</div>`;
+  openSheet(`<div class="hero">${anisSVG()}<div class="grow muted dots">${name()} يختار الكلمات المهمة</div></div><div style="margin-top:10px">${thumb}</div>`);mood('thinking');
+  const prompt=`استخرج من هذا المقطع الكلمات أو التعابير الأصعب والأهم لمتعلّم هذه اللغة (من 3 إلى 8، ورتّبها حسب ورودها). أعد JSON فقط بهذا الشكل:
+{"words":[{"w":"الكلمة كما وردت (وإن كانت عربية فبالتشكيل الكامل)","p":"نطقها: إن كانت عربية فبالحروف اللاتينية، وإن كانت إنجليزية فنطق تقريبي بالحروف العربية","m":"معناها بـ${ui} في كلمات قليلة (بحسب سياقها في المقطع)","ex":"جملة مثال قصيرة جديدة بلغة الكلمة نفسها"}]}`;
+  try{const out=await gemini([{role:'user',parts:selParts(prompt)}],{json:true});mood();const j=pj(out);WRD=(j.words||[]).filter(x=>x&&x.w).slice(0,8);
+    if(!WRD.length){closeSheet();toast('لم أجد كلمات صعبة هنا 🙂');return}
+    addJournal({kind:'words',q:cur.kind==='text'?cur.data:'',img:cur.kind==='img'?cur.data:null,a:WRD.map(x=>`**${x.w}**${x.p?' ('+x.p+')':''}: ${x.m}${x.ex?'\n  — '+x.ex:''}`).join('\n')});
+    R.selections.push({kind:'words',text:cur.kind==='text'?cur.data:'(مقطع مصوّر)',out:WRD.map(x=>x.w+': '+x.m).join('، ')});
+    openSheet(`<h2 style="margin-top:0">📖 الكلمات الصعبة</h2>${WRD.map((x,i)=>`<div class="card" style="margin-bottom:8px"><div class="row" style="gap:8px"><div class="grow"><b class="notr" dir="auto" style="font-size:21px;font-family:Amiri">${esc(x.w)}</b> <span class="muted notr" style="font-size:13px">${esc(x.p||'')}</span></div><button class="ghost" style="padding:6px 10px" onclick="speak(WRD[${i}].w,null)">🔊</button><button class="ghost" style="padding:6px 10px" id="wb${i}" onclick="saveWord(${i})">＋ بطاقة</button></div><div class="notr" dir="auto" style="margin-top:4px">${esc(x.m||'')}</div>${x.ex?`<div class="muted notr" dir="auto" style="margin-top:4px;font-size:14px">${esc(x.ex)}</div>`:''}</div>`).join('')}<div class="row" style="gap:8px;margin-top:6px"><button class="grow" onclick="saveWord(-1)">🗂️ احفظها كلها بطاقات</button><button class="ghost" onclick="closeSheet()">فهمت، أكمل 📖</button></div>`);
+  }catch(e){closeSheet();aiErr(e)}
+  clearSel(); if(selMode)toggleSelect();}
+function saveWord(i){const list=i<0?WRD.map((x,k)=>k):[i];let n=0;list.forEach(k=>{const x=WRD[k];if(!x||x.saved)return;x.saved=1;n++;addCard(x.w+(x.p?` (${x.p})`:''),x.m+(x.ex?`\n\n${x.ex}`:''),null,'word');const b=$('wb'+k);if(b){b.textContent='✓';b.disabled=true}});toast(n?(EN?`${n} saved to your review cards 🗂️`:`حُفظت ${n} في بطاقات المراجعة 🗂️`):(EN?'Already saved ✓':'محفوظة من قبل ✓'))}
 async function simpler(){if(!R.lastQ)return;mood('thinking');$('sheet').querySelector('.answer').innerHTML='<span class="dots">لحظة</span>';try{const out=await gemini([{role:'user',parts:R.lastQ.parts},{role:'model',parts:[{text:R.lastQ.out}]},{role:'user',parts:[{text:'لم تتضح لي بعد. بسّطها أكثر جدًا كأني طالب في الإعدادية، بتشبيه واحد.'}]}],{fast:true,onText:t=>{const el=$('sheet').querySelector('.answer');if(el)el.innerHTML=fmtAns(t)}});R.lastQ.out=out;mood();{const je=(S.journal||[]).find(x=>x.id===R.lastJ);if(je){je.a+='\n\n'+T('— بتبسيط أكثر:')+'\n'+out;save()}}$('sheet').querySelector('.answer').innerHTML=fmtAns(out);autoSpeak('ansTxt')}catch(e){aiErr(e)}}
 function openAsk(){openSheet(`<div class="hero">${anisSVG()}<div class="bubble grow">نعم؟ أنا معك. اسألني عن هذه الصفحة 🙂</div></div><textarea id="askIn" style="margin-top:12px" placeholder="اكتب سؤالك أو اضغط 🎙️ وتكلّم…"></textarea><div class="row" style="margin-top:10px">${micOK()?`<button class="ghost" onclick="dictate('askIn',this)">🎙️</button>`:''}<button class="grow" onclick="askPage()">اسأل</button><button class="ghost" onclick="closeSheet()">عودة</button></div><div id="askOut" class="answer" style="margin-top:12px"></div><div id="askSpk" style="margin-top:8px"></div>`)}
 async function askPage(){const q=$('askIn').value.trim();if(!q)return;const b=R.book;const parts=[{text:`سؤالي عن الصفحة التي أقرؤها الآن (أجب باختصار ثم أعدني للقراءة بلطف): ${q}`}];if(b.type==='pdf')parts.push(imgPart(pageImage(900)));else parts.push({text:'نص الصفحة:\n'+R.pageTexts[b.pos]});$('askOut').innerHTML='<span class="dots muted">يفكّر</span>';mood('thinking');try{const out=await gemini([{role:'user',parts}],{fast:true,onText:t=>{$('askOut').innerHTML=fmtAns(t)}});mood();$('askOut').innerHTML=fmtAns(out);$('askSpk').innerHTML=speakBtnHTML('askOut');autoSpeak('askOut');R.selections.push({kind:'ask',text:q,out:out.slice(0,600)});addJournal({kind:'ask',q,a:out})}catch(e){$('askOut').innerHTML='';aiErr(e)}}
@@ -1020,7 +1037,7 @@ async function shareWeek(){const st=weekStats();if(!st.min){toast('اقرأ جل
 const OB=[
  {art:()=>`<div class="onb-art"><div class="ring"></div>${anisSVG()}</div>`,t:'أهلًا بك في أنيس',d:'رفيقك الذي يجلس معك ويقرأ معك… يشرح ويبسّط ويؤنسك، حتى تصير القراءة متعة يومية.'},
  {art:()=>art('book-open','timer','moon'),t:'اقرأ بتركيز تام',d:'جلسة قراءة بمؤقت وأجواء هادئة ووضع بلا حواف… ليس بينك وبين الكتاب شيء.'},
- {art:()=>art('sparkles','message-circle-question','search'),t:'ظلّل… واسأل أنيس',d:'حدّد أي فقرة صعبة فيشرحها لك كصديق، أو يعربها، أو يضرب لك مثلًا من الحياة.'},
+ {art:()=>art('sparkles','message-circle-question','search'),t:'ظلّل… واسأل أنيس',d:'حدّد أي فقرة فيشرحها لك كصديق، أو يترجمها، أو يشرح كلماتها الصعبة ويحفظها لك، أو يعربها ويشكّلها.'},
  {art:()=>art('headphones','mic','volume-2'),t:'استمع… وتكلّم',d:'يقرأ لك أنيس الصفحة بصوت جميل، وتسأله بصوتك دون أن تكتب حرفًا.'},
  {art:()=>art('notebook-pen','layers','folder'),t:'ثبّت ما تعلمته',d:'دفتر لكل كتاب يحفظ نقاشاتك، وبطاقات مراجعة تعود إليك في وقتها… فلا تنسى ما قرأت.'},
  {art:()=>`<div class="onb-art"><div class="ring"></div><div id="obRing">${ringSVG(0,150)}</div></div>`,t:'وِردك اليومي',d:'كم دقيقة تحب أن تقرأ كل يوم؟',goal:true},
@@ -1037,7 +1054,7 @@ function obGo(d){obI=Math.max(0,Math.min(OB.length-1,obI+d));if(d>0&&obI===OB.le
 function endOnboarding(){S.onboarded=1;S.welcomed=1;save();const o=$('onb');o.style.transition='opacity .4s';o.style.opacity='0';setTimeout(()=>{o.style.display='none';o.style.opacity='1';renderHome();if(!(S.auth&&S.auth.token)&&!S.settings.key)openLogin('آخر خطوة: ادخل لتبدأ مع أنيس 🌿')},400)}
 
 /* ================= journal (دفتري) ================= */
-const JK={friend:'💬 شرح كصديق',life:'🌱 مثال من الحياة',irab:'✍️ إعراب',ask:'❓ سؤال',debrief:'🗣️ محاورة بعد الجلسة'};
+const JK={friend:'💬 شرح كصديق',life:'🌱 مثال من الحياة',irab:'✍️ إعراب',tr:'🌐 ترجمة',words:'📖 كلمات',tashkeel:'🔤 تشكيل',tarkib:'✨ تركيب',ask:'❓ سؤال',debrief:'🗣️ محاورة بعد الجلسة'};
 function addJournal(e){S.journal=S.journal||[];const id=uid();const book=R?.book;const ent={id,kind:e.kind,q:(e.q||'').slice(0,1500),a:e.a||'',chat:e.chat||null,summary:e.summary||'',bookId:book?.id||'',title:book?.title||'',page:book?(book.pos+1):0,date:Date.now(),hasImg:!!e.img};
   if(e.img)putBlob('j_'+id,e.img);S.journal.push(ent);save();return id}
 let jBook='',jSort='date',jKind='';
@@ -1073,7 +1090,7 @@ function renderJournal(){const J=(S.journal||[]);const q=($('jSearch').value||''
   const byBook=new Map();J.forEach(e=>{const k=e.bookId||'_';if(!byBook.has(k))byBook.set(k,[]);byBook.get(k).push(e)});
   const groups=new Map();
   [...byBook.entries()].sort((a,b)=>Math.max(...b[1].map(e=>e.date))-Math.max(...a[1].map(e=>e.date))).forEach(([bid,es])=>{const bk=S.books.find(b=>b.id===bid);const g=bk?(bk.folder?('📁 '+folderName(bk.folder)):'📚 المكتبة'):'🗃️ كتب محذوفة';if(!groups.has(g))groups.set(g,[]);groups.get(g).push([bid,es])});
-  L.innerHTML=[...groups.entries()].map(([g,items])=>`${groups.size>1?`<div class="muted" style="margin:16px 4px 8px;font-weight:700">${g.startsWith('📁')?'<bdi class="notr">'+esc(g)+'</bdi>':esc(g)}</div>`:''}<div class="fgrid">${items.map(([bid,es])=>{const last=new Date(Math.max(...es.map(e=>e.date)));const c=k=>es.filter(e=>e.kind===k).length;const ex=c('friend')+c('life')+c('irab'),as=c('ask'),db=c('debrief');
+  L.innerHTML=[...groups.entries()].map(([g,items])=>`${groups.size>1?`<div class="muted" style="margin:16px 4px 8px;font-weight:700">${g.startsWith('📁')?'<bdi class="notr">'+esc(g)+'</bdi>':esc(g)}</div>`:''}<div class="fgrid">${items.map(([bid,es])=>{const last=new Date(Math.max(...es.map(e=>e.date)));const c=k=>es.filter(e=>e.kind===k).length;const ex=c('friend')+c('life')+c('irab')+c('tr')+c('words')+c('tashkeel'),as=c('ask'),db=c('debrief');
     return `<div class="folder" onclick="openNotebook('${bid}')"><div class="fbadge">${ic('book-open',22)}</div><div class="t">${esc(jTitle(es[0]))}</div><div class="muted" style="font-size:12px;line-height:1.7">${es.length} مدخل${ex?` · 💬${ex}`:''}${as?` · ❓${as}`:''}${db?` · 🗣️${db}`:''}<br>آخر نقاش: ${last.toLocaleDateString(LOC,{day:'numeric',month:'short'})}</div></div>`}).join('')}</div>`).join('');
 }
 async function copyNotebook(){const es=(S.journal||[]).filter(e=>e.bookId===jBook).sort((a,b)=>(a.page-b.page)||(a.date-b.date));if(!es.length)return;const t='📓 '+jTitle(es[0])+'\n\n'+es.map(e=>`— ${JK[e.kind]||''}${e.page?' · ص '+e.page:''}\n${journalText(e)}`).join('\n\n');try{await navigator.clipboard.writeText(t);toast('نُسخ الدفتر كاملًا ✓ الصقه في ملاحظاتك أو مستند')}catch(_){openSheet(`<textarea style="min-height:300px">${esc(t)}</textarea>`)}}
@@ -1087,11 +1104,11 @@ async function journalCard(id){const e=S.journal.find(x=>x.id===id);if(!hasAI())
 const STEPS=[1,3,7,14,30,60];
 function addCard(q,a,src,type){if(!q)return;S.cards.push({id:uid(),q,a,src:src||R?.book?.title||'',type:type||'fahm',lvl:0,due:Date.now()+864e5});save()}
 function delCard(id){S.cards=S.cards.filter(c=>c.id!==id);save();renderReview();renderHome()}
-const badge=c=>c.type==='tarkib'?'<span class="chip" style="padding:2px 10px;margin:0 0 6px;font-size:12px">✨ تركيب</span>':'<span class="chip" style="padding:2px 10px;margin:0 0 6px;font-size:12px">🗂️ فهم</span>';
+const badge=c=>c.type==='word'?'<span class="chip" style="padding:2px 10px;margin:0 0 6px;font-size:12px">📖 كلمة</span>':c.type==='tarkib'?'<span class="chip" style="padding:2px 10px;margin:0 0 6px;font-size:12px">✨ تركيب</span>':'<span class="chip" style="padding:2px 10px;margin:0 0 6px;font-size:12px">🗂️ فهم</span>';
 let revQ=[];
-function renderReview(){revQ=dueCards();showRev();$('allCards').innerHTML=S.cards.length?[...S.cards].reverse().map(c=>`<div class="card" style="margin-bottom:8px">${badge(c)}<div>${esc(c.q)}</div><div class="muted answer" style="margin-top:4px">${esc(c.a)}</div><div class="row" style="margin-top:6px"><div class="muted grow" style="font-size:12px"><bdi class="notr">${esc(c.src)}</bdi> · المراجعة القادمة: ${new Date(c.due).toLocaleDateString(LOC)}</div><button class="ghost" style="padding:6px 10px;font-size:13px" onclick="delCard('${c.id}')">حذف</button></div></div>`).join(''):'<div class="muted">ستظهر هنا البطاقات التي تصنعها أثناء القراءة وبعدها.</div>'}
+function renderReview(){revQ=dueCards();showRev();$('allCards').innerHTML=S.cards.length?[...S.cards].reverse().map(c=>`<div class="card" style="margin-bottom:8px">${badge(c)}<div dir="auto">${esc(c.q)}</div><div class="muted answer" dir="auto" style="margin-top:4px;white-space:pre-line">${esc(c.a)}</div><div class="row" style="margin-top:6px"><div class="muted grow" style="font-size:12px"><bdi class="notr">${esc(c.src)}</bdi> · المراجعة القادمة: ${new Date(c.due).toLocaleDateString(LOC)}</div><button class="ghost" style="padding:6px 10px;font-size:13px" onclick="delCard('${c.id}')">حذف</button></div></div>`).join(''):'<div class="muted">ستظهر هنا البطاقات التي تصنعها أثناء القراءة وبعدها.</div>'}
 function showRev(){const A=$('revArea');if(!revQ.length){A.innerHTML=`<div class="card" style="text-align:center"><div style="font-size:40px">🌿</div><b>لا شيء للمراجعة الآن</b><div class="muted">سأذكّرك حين يحين موعد البطاقة.</div></div>`;return}
-  const c=revQ[0];A.innerHTML=`<div class="muted">${revQ.length} متبقية</div><div class="card flash" id="fl" onclick="this.classList.add('flipped')"><div>${badge(c)}<div>${esc(c.q)}</div><div class="ans answer">${esc(c.a)}</div><div class="muted" style="font-size:13px;margin-top:14px">اضغط لتقلب البطاقة</div></div></div><div class="row" style="margin-top:12px"><button class="grow" style="background:var(--green)" onclick="grade(true)">تذكّرتُ ✓</button><button class="ghost grow" onclick="grade(false)">نسيتُ ↺</button></div>`}
+  const c=revQ[0];A.innerHTML=`<div class="muted">${revQ.length} متبقية</div><div class="card flash" id="fl" onclick="this.classList.add('flipped')"><div>${badge(c)}<div dir="auto">${esc(c.q)}</div><div class="ans answer" dir="auto" style="white-space:pre-line">${esc(c.a)}</div><div class="muted" style="font-size:13px;margin-top:14px">اضغط لتقلب البطاقة</div></div></div><div class="row" style="margin-top:12px"><button class="grow" style="background:var(--green)" onclick="grade(true)">تذكّرتُ ✓</button><button class="ghost grow" onclick="grade(false)">نسيتُ ↺</button></div>`}
 function grade(ok){const c=revQ.shift();const card=S.cards.find(x=>x.id===c.id);card.lvl=ok?Math.min(card.lvl+1,STEPS.length-1):0;card.due=Date.now()+STEPS[card.lvl]*864e5;save();if(!ok)toast('لا بأس، سنعود إليها غدًا 🌱');showRev();renderHome()}
 
 /* ================= settings ================= */
