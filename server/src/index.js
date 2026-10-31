@@ -204,7 +204,7 @@ export default {
       if (path === '/' || path === '/health') return json({ ok: true, name: 'anis', time: new Date().toISOString(), google: !!env.GOOGLE_CLIENT_IDS });
       if (path === '/config')
         return json({
-          free_daily: parseInt(env.FREE_DAILY, 10), daily_bonus: parseInt(env.DAILY_BONUS, 10),
+          free_daily: parseInt(env.FREE_DAILY, 10), daily_bonus: parseInt(env.DAILY_BONUS, 10), premium_daily: parseInt(env.PREMIUM_DAILY, 10),
           price_month: env.PRICE_MONTH, price_year: env.PRICE_YEAR,
           instapay: env.PAY_INSTAPAY || '', instapay_link: env.PAY_INSTAPAY_LINK || '', wallet: env.PAY_WALLET || '', whatsapp: env.WHATSAPP || '',
         });
