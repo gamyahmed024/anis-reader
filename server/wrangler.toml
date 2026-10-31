@@ -1,0 +1,15 @@
+name = "anis"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "anis-db"
+database_id = "REPLACED_IN_CI"
+
+[vars]
+FREE_DAILY = "10"
+PREMIUM_DAILY = "300"
+DAILY_BONUS = "2"
+GOOGLE_CLIENT_IDS = ""

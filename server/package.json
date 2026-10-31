@@ -1,0 +1,1 @@
+{ "name": "anis-server", "private": true, "devDependencies": { "wrangler": "^4" } }
