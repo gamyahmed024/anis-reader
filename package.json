@@ -12,6 +12,7 @@
   "dependencies": {
     "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor-community/text-to-speech": "^8.0.2",
+    "@capacitor-mlkit/document-scanner": "^8.2.2",
     "@capacitor/android": "^8.6.0",
     "@capacitor/core": "^8.6.0",
     "@capacitor/filesystem": "^8.1.5",

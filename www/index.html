@@ -282,6 +282,7 @@ html[dir=ltr] .textpage{text-align:left;hyphens:auto}html[dir=ltr] .textpage p{t
   <div class="row wrap" style="margin-top:6px">
     <label class="grow"><button class="ghost addbtn" style="width:100%" onclick="document.getElementById('fileIn').click()"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M5 12h14" /> <path d="M12 5v14" /></svg> أضف كتابًا (PDF أو TXT)</button></label>
     <button class="ghost addbtn" onclick="openPaste()"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"> <path d="M11 14h10" /> <path d="M16 4h2a2 2 0 0 1 2 2v1.344" /> <path d="m17 18 4-4-4-4" /> <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 1.793-1.113" /> <rect x="8" y="2" width="8" height="4" rx="1" /></svg> الصق نصًا</button>
+    <button class="ghost addbtn scanbtn" style="width:100%" onclick="scanPages()"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/></svg> صوّر صفحات من كتاب أو ملزمة</button>
   </div>
   <input type="file" id="fileIn" multiple accept=".pdf,.txt,application/pdf,text/plain" style="display:none">
   <div id="noKey" class="card" style="margin-top:18px;display:none">
@@ -1038,6 +1039,20 @@ async function reallyDeleteAcct(){try{await api('/account/delete',{body:{}});try
 
 /* ================= retention: ward, ranks, reminders, weekly card, onboarding ================= */
 const LN=plug('LocalNotifications'),SH=plug('Share'),FS=plug('Filesystem');
+/* scan pages with Google's document scanner → PDF book */
+const DSC=plug('DocumentScanner');let scanBuf=null;
+const b64buf=b=>{const s=atob(b);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u.buffer};
+async function scanPages(){if(!DSC){toast('التصوير يعمل داخل التطبيق المثبّت على الهاتف');return}
+  try{const av=await DSC.isGoogleDocumentScannerModuleAvailable().catch(()=>({available:true}));
+    if(av&&av.available===false){toast('نجهّز الماسح لأول مرة… لحظات وجرّب مرة أخرى',5000);await DSC.installGoogleDocumentScannerModule().catch(()=>{});return}
+    const r=await DSC.scanDocument({galleryImportAllowed:true,pageLimit:50,resultFormats:'PDF',scannerMode:'FULL'});
+    const uri=r&&r.pdf&&r.pdf.uri;if(!uri)return;
+    try{const res=await fetch(Capacitor.convertFileSrc(uri));if(!res.ok)throw 0;scanBuf=await res.arrayBuffer()}catch(e){const f=await FS.readFile({path:uri});scanBuf=typeof f.data==='string'?b64buf(f.data):await f.data.arrayBuffer()}
+    const n=r.pdf.pageCount||1;const d=new Date().toLocaleDateString(LOC,{day:'numeric',month:'long'});
+    openSheet(`<h2 style="margin-top:0">📷 ${EN?`${n} page${n>1?'s':''} scanned`:`صوّرتَ ${n} ${n===1?'صفحة':n===2?'صفحتين':n<=10?'صفحات':'صفحة'}`}</h2><div class="muted">${EN?'Give it a name to find it in your library':'سمِّها لتجدها في مكتبتك'}</div><input id="scName" style="margin-top:10px" value="${esc((EN?'Scanned pages · ':'صفحات مصوّرة · ')+d)}" onfocus="this.select()"><div class="row" style="margin-top:12px"><button class="grow" onclick="saveScan()">${EN?'Add to library':'أضف إلى المكتبة'} 📚</button><button class="ghost" onclick="scanBuf=null;closeSheet()">${EN?'Cancel':'إلغاء'}</button></div>`)}
+  catch(e){const m=String(e&&e.message||e);if(/cancel/i.test(m))return;toast('تعذّر التصوير: '+m.slice(0,80),5000)}}
+async function saveScan(){if(!scanBuf)return closeSheet();const title=($('scName').value||'').trim()||'صفحات مصوّرة';const id=uid();await putBlob(id,scanBuf);scanBuf=null;
+  S.books.push({id,title,type:'pdf',pos:0,total:0,added:Date.now(),notes:[],folder:curFolder,scanned:true});save();closeSheet();renderHome();toast(EN?'Added to your library 📚 tap «Read» to start':'أُضيفت إلى مكتبتك 📚 اضغط «اقرأ» لتبدأ',3500)}
 const goal=()=>S.settings.goal||10;
 const minsOn=d=>S.sessions.filter(x=>x.date===d).reduce((a,x)=>a+x.min,0);
 const totalMin=()=>S.sessions.reduce((a,x)=>a+x.min,0);
