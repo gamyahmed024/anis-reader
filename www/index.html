@@ -653,7 +653,14 @@ Real reading is a quiet conversation. After each paragraph, a good reader pauses
 Consistency matters more than quantity. Twenty focused minutes every day will take you further than a long weekend marathon followed by weeks of silence. A small daily habit grows into a library of ideas that truly belong to you.
 
 Finally, an idea becomes yours when you use it. Talk about what you read, write a sentence with a phrase you admired, connect it to your own life. That is the moment a thought moves from the page of the book to the page of your mind.`;
-async function ensureSample(){ if(!S.books.length && !S.sampleAdded){const id='sample'; await putBlob(id,EN?SAMPLE_EN:SAMPLE); S.books.push({id,title:EN?'Sample: How to read so it stays with you':'نصّ تجريبي: كيف تتكون الملكة اللغوية؟',type:'text',pos:0,total:0,added:Date.now(),notes:[],sampleLang:LANG}); S.sampleAdded=true; save(); renderHome();} else {const sb=S.books.find(b=>b.id==='sample');if(sb)putBlob('sample',sb.sampleLang==='en'?SAMPLE_EN:SAMPLE);} }
+async function ensureSample(){
+  const T_={ar:['نصّ تجريبي: كيف تتكون الملكة اللغوية؟',SAMPLE],en:['Sample: How to read so it stays with you',SAMPLE_EN]};
+  const add=async(id,lg)=>{await putBlob(id,T_[lg][1]);S.books.push({id,title:T_[lg][0],type:'text',pos:0,total:0,added:Date.now(),notes:[],sampleLang:lg})};
+  if(!S.books.length&&!S.sampleAdded){const ui=EN?'en':'ar',other=EN?'ar':'en';await add('sample2',other);await add('sample',ui);S.sampleAdded=true;S.sample2Added=true;save();renderHome();return}
+  const sb=S.books.find(b=>b.id==='sample');
+  if(sb&&!S.sample2Added&&!S.books.find(b=>b.id==='sample2')){await add('sample2',(sb.sampleLang||'ar')==='en'?'ar':'en');S.sample2Added=true;save();renderHome()}
+  for(const id of ['sample','sample2']){const b=S.books.find(x=>x.id===id);if(b)putBlob(id,T_[b.sampleLang||'ar'][1])}
+}
 
 function streak(){const days=new Set(S.sessions.map(s=>s.date));let n=0;let d=new Date();if(!days.has(today()))d.setDate(d.getDate()-1);while(days.has(d.toISOString().slice(0,10))){n++;d.setDate(d.getDate()-1)}return n}
 const dueCards=()=>S.cards.filter(c=>(c.due||0)<=Date.now());
