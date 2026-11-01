@@ -1059,7 +1059,7 @@ function notifPlan(h,mi){const out=[],st=streak(),readToday=readDays().has(today
     if(i===0&&st>=2){title=EN?`🔥 Your ${st}-day flame goes out tonight!`:`🔥 شعلتك (${st} ${st>10?'يومًا':'أيام'}) ستنطفئ الليلة!`;body=(S.shields?(EN?`You have 🛡️ ${S.shields} shield, but why use it? `:`معك 🛡️ ${S.shields} درع، لكن لماذا تستهلكه؟ `):'')+(EN?'5 minutes are enough to keep it alive 📖':'خمس دقائق تكفي لإنقاذها 📖')}
     else if(i===1&&!readToday&&st>=2&&!S.shields){title=EN?'🔥 Light your flame again':'🔥 نشعلها من جديد؟';body=reminderBody()}
     else body=(qOn?quoteFor(i)+'\n':'')+reminderBody();
-    out.push({id:1001+i,title,body,largeBody:body,schedule:{at,allowWhileIdle:true},smallIcon:'ic_stat_anis',iconColor:'#C9973F'})}
+    out.push({id:1001+i,title,body,largeBody:body,schedule:{at,allowWhileIdle:true},isExactNotification:false,smallIcon:'ic_stat_anis',iconColor:'#C9973F'})}
   return out}
 async function setReminder(on,time){if(!LN){toast('التذكير يعمل داخل التطبيق المثبّت');return}
   try{if(on){let p=await LN.checkPermissions();if(p.display!=='granted'){p=await LN.requestPermissions();if(p.display!=='granted'){toast('اسمح بالإشعارات لأنيس من إعدادات الهاتف');S.settings.remind=false;save();renderReminder();return}}
