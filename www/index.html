@@ -402,6 +402,7 @@ html[dir=ltr] .textpage{text-align:left;hyphens:auto}html[dir=ltr] .textpage p{t
   <h2>البيانات</h2>
   <div class="card" id="storeBox" style="margin-bottom:10px"><span class="muted">جارٍ حساب المساحة…</span></div>
   <button class="ghost" onclick="exportData()">📤 نسخ نسخة احتياطية (البطاقات والملخصات)</button>
+  <details class="adv notr" style="margin-top:16px"><summary>🎵 Sound credits · حقوق الأصوات</summary><div class="muted" dir="ltr" style="text-align:left;font-size:12px;line-height:1.8;margin-top:6px">Rain — alex36917 (freesound.org, CC BY)<br>Waves — Luftrum (freesound.org, CC BY)<br>Stream — gluckose (freesound.org, CC0)<br>Birds — kvgarlic (freesound.org, CC0)<br>Fireplace — ezwa (soundbible.com, Public Domain)<br>Café — stephan (soundbible.com, Public Domain)<br>Summer night — Lisa Redfern (soundbible.com, Public Domain)<br>Edited by Porrumentzio for the Blanket app (github.com/rafaelmardojai/blanket).</div></details>
 </section>
 
 <nav class="tabbar" id="tabbar">
@@ -694,7 +695,7 @@ function delBook(id){openSheet(`<b>حذف الكتاب؟</b><p class="muted">س�
 function reallyDel(id){S.books=S.books.filter(b=>b.id!==id);delBlob(id);save();closeSheet();renderHome()}
 
 /* ================= session setup (ritual) ================= */
-let setup={min:25,sound:'rain',custom:false};
+let setup={min:25,sound:'rain',custom:false};if(S.lastSound)setup.sound=S.lastSound==='brown'?'fire':S.lastSound;
 function setupSession(id){
   const b=S.books.find(x=>x.id===id); setup.book=b;
   const lastNote=(b.notes||[]).slice(-1)[0];
@@ -703,21 +704,29 @@ function setupSession(id){
   <h2>ماذا تريد أن تخرج به اليوم؟</h2><input id="intent" placeholder="مثلًا: أفهم الفكرة الأساسية للفصل الثاني">
   <h2>مدة الجلسة</h2><div id="minChips">${[15,25,45,60].map(m=>`<span class="chip ${m===setup.min&&!setup.custom?'on':''}" onclick="setup.custom=false;$('customMin').style.display='none';pick('min',${m},this)">${m} د</span>`).join('')}<span class="chip ${setup.custom?'on':''}" onclick="pickCustom(this)">⏱️ مخصص${setup.custom?` (${fmtMin(setup.min)})`:''}</span></div>
   <div id="customMin" class="row" style="display:${setup.custom?'flex':'none'};margin-top:8px;gap:8px"><input id="cmH" type="number" inputmode="numeric" min="0" max="12" placeholder="ساعات" style="text-align:center" value="${setup.custom?Math.floor(setup.min/60)||'':''}" oninput="readCustom()"><span class="muted">:</span><input id="cmM" type="number" inputmode="numeric" min="0" max="59" placeholder="دقائق" style="text-align:center" value="${setup.custom?setup.min%60||'':''}" oninput="readCustom()"></div>
-  <h2>الأجواء</h2><div>${[['rain','🌧️ مطر خفيف'],['brown','🔥 دفء هادئ'],['cafe','☕ همهمة مقهى'],['none','🤫 صمت']].map(([k,l])=>`<span class="chip ${k===setup.sound?'on':''}" onclick="pick('sound','${k}',this)">${l}</span>`).join('')}</div>
+  <h2>الأجواء</h2><div>${[['rain','🌧️ مطر خفيف'],['fire','🔥 مدفأة'],['cafe','☕ همهمة مقهى'],['stream','🏞️ جدول ماء'],['waves','🌊 أمواج'],['birds','🐦 عصافير الصباح'],['night','🌙 ليلة صيف'],['none','🤫 صمت']].map(([k,l])=>`<span class="chip ${k===setup.sound?'on':''}" onclick="pick('sound','${k}',this)">${l}</span>`).join('')}</div>
   <div class="muted" style="margin-top:14px">ضع الهاتف أمامك، خذ نفسًا عميقًا… وابدأ.</div>
   <button style="width:100%;margin-top:12px;padding:15px;font-size:17px" onclick="startSession()">📖 لنبدأ القراءة معًا</button>`);
 }
 const fmtMin=m=>EN?(m>=60?(Math.floor(m/60)+'h'+(m%60?(' '+m%60+'m'):'')):(m+' min')):m>=60?(Math.floor(m/60)+' س'+(m%60?(' و'+m%60+' د'):'')):(m+' د');
 function pickCustom(el){setup.custom=true;el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');$('customMin').style.display='flex';setTimeout(()=>$('cmM').focus(),100)}
 function readCustom(){const h=parseInt($('cmH').value||0,10)||0,m=parseInt($('cmM').value||0,10)||0;const t=Math.min(720,h*60+m);if(t>0){setup.min=t;S.lastCustom=t;save();const c=[...$('minChips').children].pop();c.textContent='⏱️ مخصص ('+fmtMin(t)+')'}}
-function pick(k,v,el){setup[k]=v;el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+function pick(k,v,el){setup[k]=v;if(k==='sound'){S.lastSound=v;save();previewSound(v)}el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
 
 /* ================= ambient audio (generated, no files) ================= */
 let AC,ambNode,ambGain,soundOn=true;
 function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}return AC}
-function noiseBuf(kind){const c=ac(),len=c.sampleRate*4,b=c.createBuffer(1,len,c.sampleRate),d=b.getChannelData(0);let last=0,b0=0,b1=0,b2=0;for(let i=0;i<len;i++){const w=Math.random()*2-1;if(kind==='brown'){last=(last+0.02*w)/1.02;d[i]=last*3.5}else{b0=0.99765*b0+w*0.099;b1=0.963*b1+w*0.2965;b2=0.57*b2+w*1.0526;d[i]=(b0+b1+b2+w*0.1848)*0.11}}return b}
-function startAmbient(kind){stopAmbient();if(kind==='none'||!ac())return;const c=AC;c.resume?.();const src=c.createBufferSource();src.buffer=noiseBuf(kind==='brown'?'brown':'pink');src.loop=true;const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=kind==='rain'?2600:kind==='cafe'?900:500;ambGain=c.createGain();ambGain.gain.value=0;ambGain.gain.linearRampToValueAtTime(kind==='cafe'?0.22:0.16,c.currentTime+3);src.connect(f).connect(ambGain).connect(c.destination);if(kind==='cafe'){const l=c.createOscillator(),lg=c.createGain();l.frequency.value=0.15;lg.gain.value=0.05;l.connect(lg).connect(ambGain.gain);l.start()}src.start();ambNode=src}
-function stopAmbient(){try{ambNode&&ambNode.stop()}catch(e){}ambNode=null}
+/* real recorded ambience (CC0 / public domain / CC BY, see Settings → sound credits), looped with an equal-power crossfade */
+const AMB_VOL=0.5;let ambBufs={},ambSrcs=[],ambTimer=null,ambGen=0;
+async function ambBuf(k){if(ambBufs[k])return ambBufs[k];const r=await fetch('sounds/'+k+'.ogg');const ab=await r.arrayBuffer();return ambBufs[k]=await new Promise((res,rej)=>ac().decodeAudioData(ab,res,rej))}
+const fadeIn=n=>Float32Array.from({length:n},(_,i)=>Math.sin(i/(n-1)*Math.PI/2)),fadeOut=n=>Float32Array.from({length:n},(_,i)=>Math.cos(i/(n-1)*Math.PI/2));
+async function startAmbient(kind){stopAmbient();if(kind==='brown')kind='fire';if(!kind||kind==='none'||!ac())return;const c=AC;try{c.resume&&c.resume()}catch(e){}const my=ambGen;let buf;try{buf=await ambBuf(kind)}catch(e){return}if(my!==ambGen)return;
+  ambGain=c.createGain();ambGain.gain.setValueAtTime(0,c.currentTime);ambGain.gain.linearRampToValueAtTime(AMB_VOL,c.currentTime+3);ambGain.connect(c.destination);
+  const F=Math.min(4,buf.duration/4),OFF=Math.min(1.2,buf.duration/10),len=buf.duration-OFF-0.1;
+  const play=t=>{if(my!==ambGen)return;const s=c.createBufferSource();s.buffer=buf;const g=c.createGain();s.connect(g).connect(ambGain);g.gain.setValueCurveAtTime(fadeIn(64),t,F);g.gain.setValueCurveAtTime(fadeOut(64),t+len-F,F);s.start(t,OFF);s.stop(t+len+.05);ambSrcs.push(s);if(ambSrcs.length>3)ambSrcs.shift();const nx=t+len-F;ambTimer=setTimeout(()=>play(nx),Math.max(0,(nx-c.currentTime-1.5)*1000))};
+  play(c.currentTime+.05)}
+let pvT;function previewSound(v){if(R)return;clearTimeout(pvT);startAmbient(v);pvT=setTimeout(()=>{if(!R)stopAmbient()},6000)}
+function stopAmbient(){ambGen++;clearTimeout(ambTimer);ambSrcs.forEach(s=>{try{s.stop()}catch(e){}});ambSrcs=[];if(ambGain){try{ambGain.disconnect()}catch(e){}}ambGain=null}
 function toggleSound(){soundOn=!soundOn;$('sndBtn').innerHTML=ic(soundOn?'volume-2':'volume-x',21);if(soundOn)startAmbient(setup.sound);else stopAmbient()}
 function flipSound(){if(!soundOn||!ac())return;const c=AC,s=c.createBufferSource(),b=c.createBuffer(1,c.sampleRate*0.18,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2)*0.5;s.buffer=b;const f=c.createBiquadFilter();f.type='bandpass';f.frequency.value=3000;const g=c.createGain();g.gain.value=0.35;s.connect(f).connect(g).connect(c.destination);s.start()}
 function chime(){if(!ac())return;const c=AC;[523.25,659.25,783.99].forEach((fr,i)=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=fr;o.type='sine';g.gain.setValueAtTime(0,c.currentTime+i*.25);g.gain.linearRampToValueAtTime(.15,c.currentTime+i*.25+.05);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+i*.25+2);o.connect(g).connect(c.destination);o.start(c.currentTime+i*.25);o.stop(c.currentTime+i*.25+2.1)})}
@@ -936,7 +945,7 @@ async function startReadPage(){if(RA)await stopReadPage();await stopSpeak();
   if(mode==='device'){const m=await voiceMode('device',R.lang!=='en');if(m!=='device'){openSheet(`<b>صوت الهاتف العربي غير جاهز بعد 🔈</b><p class="muted" style="line-height:1.8">حمّل الصوت العربي من جوجل (مرة واحدة)، أو استخدم صوت الذكاء الاصطناعي الآن.</p><div class="row" style="gap:8px"><button class="grow" onclick="closeSheet();openVoiceInstall()">⬇️ تحميل الصوت العربي</button><button class="ghost" onclick="S.settings.readMode='ai';save();closeSheet();startReadPage()">✨ صوت الذكاء الاصطناعي</button></div>`);return}}
   if((R.book.type==='pdf'||mode==='ai')&&!hasAI()){aiErr(new Error('LOGIN'));return}
   RA={on:true,mode,skip:false};
-  if(soundOn&&ambGain&&AC)ambGain.gain.linearRampToValueAtTime(0.04,AC.currentTime+1);
+  if(soundOn&&ambGain&&AC)ambGain.gain.linearRampToValueAtTime(AMB_VOL*.25,AC.currentTime+1);
   try{
     while(RA&&RA.on){const idx=R.book.pos;raBar(`🎧 <span class="dots">أجهّز صفحة ${idx+1}</span>`);
       const text=(await pageText(idx)||'').trim();if(!RA||!RA.on)break;
@@ -948,7 +957,7 @@ async function startReadPage(){if(RA)await stopReadPage();await stopSpeak();
       if(R.book.pos===idx)await turn(1);
     }
   }catch(e){aiErr(e)}
-  RA=null;raBar(null);if(soundOn&&ambGain&&AC)ambGain.gain.linearRampToValueAtTime(0.16,AC.currentTime+2);}
+  RA=null;raBar(null);if(soundOn&&ambGain&&AC)ambGain.gain.linearRampToValueAtTime(AMB_VOL,AC.currentTime+2);}
 async function stopReadPage(){if(RA)RA.on=false;await stopSpeak();raBar(null)}
 async function raSkip(){if(!RA)return;RA.skip=true;await playerStop();speakStop=false}
 
