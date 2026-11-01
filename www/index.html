@@ -266,7 +266,7 @@ html[dir=ltr] .textpage{text-align:left;hyphens:auto}html[dir=ltr] .textpage p{t
     </div>
   </div>
   <div class="stats">
-    <div class="stat"><b id="stStreak">0</b><span class="muted">أيام متتالية</span></div>
+    <div class="stat" onclick="openFlame()" style="cursor:pointer"><b id="stStreak">0</b><span class="muted">🔥 الشعلة</span></div>
     <div class="stat"><b id="stMin">0</b><span class="muted">دقيقة قراءة</span></div>
     <div class="stat"><b id="stDue">0</b><span class="muted">بطاقة للمراجعة</span></div>
   </div>
@@ -385,7 +385,7 @@ html[dir=ltr] .textpage{text-align:left;hyphens:auto}html[dir=ltr] .textpage p{t
   <div id="goalChips"></div>
   <div id="remindBox"><h2>تذكير يومي لطيف</h2><div id="remindChips"></div>
   <div class="row" style="margin-top:8px"><span class="muted grow">وقت التذكير</span><input id="remindTime" type="time" style="width:140px" onchange="setReminder(true,this.value)"></div>
-  <div class="muted" style="margin-top:6px">يذكّرك أنيس بالكتاب والصفحة التي توقفت عندها.</div></div>
+  <div class="muted" style="margin-top:6px">يذكّرك أنيس بالكتاب والصفحة التي توقفت عندها، ويحذّرك قبل أن تنطفئ شعلتك 🔥</div><div class="muted" style="margin-top:10px">💬 جملة تحفيزية مع التذكير:</div><div id="quoteChips"></div></div>
   <div class="row wrap" style="margin-top:16px;gap:8px"><button class="ghost grow" onclick="shareWeek()">📤 شارك أسبوعك في القراءة</button><button class="ghost grow" onclick="startOnboarding(true)">🎬 شرح التطبيق</button></div>
   <h2>المظهر</h2>
   <div id="themeChips"></div>
@@ -545,7 +545,9 @@ async function delBlob(id){delete memBlobs[id];try{const d=await db();d.transact
 /* ================= helpers ================= */
 const $=id=>document.getElementById(id);
 const uid=()=>Math.random().toString(36).slice(2,10);
-const today=()=>new Date().toISOString().slice(0,10);
+const ld=d=>{const z=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())};
+const today=()=>ld(new Date());
+const dayAdd=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return ld(d)};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fmtAns(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/^#+\s*/gm,'').replace(/^\s*[\*\-]\s+/gm,'• ')}
 let tT; function toast(m,ms=2600){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('on'),ms)}
@@ -662,14 +664,32 @@ async function ensureSample(){
   for(const id of ['sample','sample2']){const b=S.books.find(x=>x.id===id);if(b)putBlob(id,T_[b.sampleLang||'ar'][1])}
 }
 
-function streak(){const days=new Set(S.sessions.map(s=>s.date));let n=0;let d=new Date();if(!days.has(today()))d.setDate(d.getDate()-1);while(days.has(d.toISOString().slice(0,10))){n++;d.setDate(d.getDate()-1)}return n}
+function readDays(){return new Set([...S.sessions.map(x=>x.date),...(S.frozen||[])])}
+function streak(){const days=readDays();let d=today();if(!days.has(d))d=dayAdd(d,-1);let n=0;while(days.has(d)){n++;d=dayAdd(d,-1)}return n}
+const MILES=[3,7,14,30,50,100,200,365,500,1000];
+/* the flame (streak) and its shields (streak freeze) */
+const L2=(ar,en)=>EN?en:ar;
+const dN=n=>EN?(n===1?'1 day':n+' days'):(n===1?'يوم':n===2?'يومان':n<=10?n+' أيام':n+' يومًا');
+function guardStreak(){S.frozen=S.frozen||[];S.shields=S.shields||0;const days=readDays();const t=today(),y=dayAdd(t,-1);if(days.has(t)||days.has(y))return;
+  const last=[...days].sort().pop();if(!last||last>t)return;let n=0,x=last;while(days.has(x)){n++;x=dayAdd(x,-1)}if(n<2)return;
+  const gap=[];let d=dayAdd(last,1);while(d<t){gap.push(d);d=dayAdd(d,1)}if(!gap.length)return;
+  if(gap.length<=S.shields){S.shields-=gap.length;S.frozen.push(...gap);save();setTimeout(()=>openSheet(`<div class="notr" style="text-align:center"><div style="font-size:54px">🛡️</div><h2 style="margin:4px 0">${L2('درعك حمى شعلتك!','Your shield saved your flame!')}</h2><div class="muted" style="line-height:1.8">${L2(`غبتَ ${gap.length===1?'يومًا':dN(gap.length)}، فاستخدمنا ${gap.length===1?'درعًا':gap.length+' دروع'} حتى لا تنطفئ شعلتك (🔥 ${dN(n+gap.length)}). اقرأ اليوم لتبقى مشتعلة.`,`You were away ${dN(gap.length)}, so we used ${gap.length===1?'a shield':gap.length+' shields'} to keep your flame (🔥 ${dN(n+gap.length)}) alive. Read today to keep it burning.`)}</div><div class="muted" style="margin-top:6px">${L2('باقي معك','Shields left')}: 🛡️ ${S.shields}</div><button style="width:100%;margin-top:14px" onclick="closeSheet()">${L2('لنقرأ الآن 📖','Let\'s read now 📖')}</button></div>`),1500)}
+  else if(S.lostShown!==last){S.lostShown=last;S.bestStreak=Math.max(S.bestStreak||0,n);save();setTimeout(()=>openSheet(`<div class="notr" style="text-align:center">${anisSVG()}<h2 style="margin:6px 0">${L2('انطفأت الشعلة… لكن لا بأس 🌱','Your flame went out… that\'s okay 🌱')}</h2><div class="muted" style="line-height:1.8">${L2(`كانت شعلتك ${dN(n)}، وهذا إنجاز يُحسب لك. أفضل رقم لك: <b>${S.bestStreak}</b>.<br>نشعلها من جديد اليوم؟ خمس دقائق تكفي.`,`Your flame lasted ${dN(n)}, and that counts. Your best: <b>${S.bestStreak}</b>.<br>Light it again today? Five minutes is enough.`)}</div><button style="width:100%;margin-top:14px" onclick="closeSheet()">${L2('نبدأ من جديد 🔥','Start again 🔥')}</button></div>`),1500)}}
+function flameAfterSession(before){const st=streak();S.bestStreak=Math.max(S.bestStreak||0,st);const out=[];
+  if(st>before){if(MILES.includes(st))out.push(`<div style="font-size:40px">🔥</div><b class="notr">${L2(`شعلتك مشتعلة منذ ${dN(st)}!`,`Your flame has been burning for ${dN(st)}!`)}</b><div class="muted notr">${st>=30?L2('إنجاز نادر… أنت قارئ حقيقي 👑','A rare achievement… you\'re a true reader 👑'):L2('استمر، أنت تبني عادة تغيّر حياتك','Keep going, you\'re building a life-changing habit')}</div>`);
+    if(st%7===0&&(S.shields||0)<2&&S.shieldDay!==today()){S.shieldDay=today();S.shields=(S.shields||0)+1;out.push(`<div style="font-size:34px">🛡️</div><b class="notr">${L2('كسبت درعًا!','You earned a shield!')}</b><div class="muted notr">${L2(`لو غبت يومًا، يحمي الدرع شعلتك من الانطفاء. (معك ${S.shields})`,`If you miss a day, the shield keeps your flame alive. (You have ${S.shields})`)}</div>`)}}
+  save();return out}
+function openFlame(){const st=streak(),sh=S.shields||0,nx=MILES.find(m=>m>st);openSheet(`<div class="notr"><div style="text-align:center"><div style="font-size:60px;line-height:1">🔥</div><h2 style="margin:6px 0">${L2('شعلتك','Your flame')}: ${dN(st)}</h2><div class="muted" style="line-height:1.8">${L2('كل يوم تقرأ فيه ولو دقائق تبقى شعلتك مشتعلة. وإن غبت يومًا انطفأت… إلا إذا كان معك درع.','Every day you read, even for a few minutes, keeps your flame burning. Miss a day and it goes out… unless you have a shield.')}</div></div>
+  <div class="row" style="gap:10px;margin:14px 0"><div class="card grow" style="text-align:center"><div style="font-size:26px">🛡️ ${sh}</div><div class="muted" style="font-size:13px">${L2('دروع (درع كل 7 أيام، وحتى 2)','Shields (one every 7 days, up to 2)')}</div></div><div class="card grow" style="text-align:center"><div style="font-size:26px">🏆 ${Math.max(S.bestStreak||0,st)}</div><div class="muted" style="font-size:13px">${L2('أفضل شعلة لك','Your best flame')}</div></div></div>
+  ${nx?`<div class="muted" style="text-align:center">${L2(`الهدف القادم: <b>${dN(nx)}</b> (باقي ${nx-st})`,`Next goal: <b>${dN(nx)}</b> (${nx-st} to go)`)}</div>`:''}
+  ${LN&&!S.settings.remind?`<button class="soft" style="width:100%;margin-top:12px" onclick="closeSheet();setReminder(true)">${L2('🔔 ذكّرني يوميًا حتى لا تنطفئ','🔔 Remind me daily so it never goes out')}</button>`:''}<button style="width:100%;margin-top:10px" onclick="closeSheet()">${L2('رائع','Great')}</button></div>`)}
 const dueCards=()=>S.cards.filter(c=>(c.due||0)<=Date.now());
 function renderHome(){
   const h=new Date().getHours();
   $('greet').textContent='السلام عليكم';
   const last=S.sessions[S.sessions.length-1];
   $('greetSub').textContent= last? `${name()} هنا. آخر مرة قرأنا ${last.min} دقيقة في «${last.title}».` : `أنا ${name()}، اختر كتابًا وسأجلس معك.`;
-  $('stStreak').textContent=Math.max(streak(),(S.acct&&S.auth&&S.acct.streak)||0); $('stMin').textContent=S.sessions.reduce((a,s)=>a+s.min,0); const due=dueCards().length; $('stDue').textContent=due;
+  $('stStreak').textContent=streak(); $('stMin').textContent=S.sessions.reduce((a,s)=>a+s.min,0); const due=dueCards().length; $('stDue').textContent=due;
   $('dueBox').style.display=due?'block':'none'; $('dueN').textContent=due;
   $('noKey').style.display=hasAI()?'none':'block';renderQuota();renderWard();
   S.folders=S.folders||[]; if(curFolder&&!S.folders.find(f=>f.id===curFolder))curFolder=null;
@@ -898,9 +918,9 @@ function toDebrief(){
   $('endOv').classList.remove('on'); if(R.book.type==='pdf'&&pdfDoc&&!R.pageImgs[R.book.pos])R.pageImgs[R.book.pos]=pageImage(900);
   const min=Math.max(1,Math.round(elapsed()/60)); R.min=min;
   const _before=minsOn(today()),_rk=rankOf(totalMin()).i;R.book.lastRead=Date.now();
-  S.sessions.push({date:today(),min,title:R.book.title,pages:R.pagesSeen.size}); save();refreshReminderBody();
+  const _st0=streak();S.sessions.push({date:today(),min,title:R.book.title,pages:R.pagesSeen.size}); save();const _fl=flameAfterSession(_st0);refreshReminderBody();
   const _after=minsOn(today()),_rk2=rankOf(totalMin());
-  setTimeout(()=>{if(_before<goal()&&_after>=goal())$('chat').insertAdjacentHTML('afterbegin',`<div class="card" style="text-align:center;margin-bottom:6px"><div style="font-size:34px">🎉</div><b>أتممت وِردك اليوم!</b><div class="muted">${_after} دقيقة من ${goal()} · بارك الله في وقتك</div></div>`);if(_rk2.i>_rk)$('chat').insertAdjacentHTML('afterbegin',`<div class="card" style="text-align:center;margin-bottom:6px"><div style="font-size:34px">${_rk2.ic}</div><b>ترقّيت إلى مرتبة «${_rk2.name}»</b></div>`)},300);
+  setTimeout(()=>{_fl.reverse().forEach(h=>$('chat').insertAdjacentHTML('afterbegin',`<div class="card" style="text-align:center;margin-bottom:6px">${h}</div>`));if(LN&&!S.settings.remind&&!S.askedRemind&&S.sessions.length>=1){S.askedRemind=1;save();$('chat').insertAdjacentHTML('afterbegin',`<div class="card" style="text-align:center;margin-bottom:6px"><b>🔔 أذكّرك كل يوم حتى لا تنطفئ شعلتك؟</b><div class="muted" style="margin:4px 0 8px">تذكير لطيف مرة واحدة يوميًا، مع جملة تحفّزك على القراءة.</div><button class="soft" onclick="setReminder(true);this.parentElement.remove()">فعّل التذكير</button></div>`)}if(_before<goal()&&_after>=goal())$('chat').insertAdjacentHTML('afterbegin',`<div class="card" style="text-align:center;margin-bottom:6px"><div style="font-size:34px">🎉</div><b>أتممت وِردك اليوم!</b><div class="muted">${_after} دقيقة من ${goal()} · بارك الله في وقتك</div></div>`);if(_rk2.i>_rk)$('chat').insertAdjacentHTML('afterbegin',`<div class="card" style="text-align:center;margin-bottom:6px"><div style="font-size:34px">${_rk2.ic}</div><b>ترقّيت إلى مرتبة «${_rk2.name}»</b></div>`)},300);
   $('debSub').textContent=`${min} دقيقة · ${R.pagesSeen.size} صفحة · «${R.book.title}»`; go('debrief'); mood('happy');
   R.chat=[]; $('chat').innerHTML='';
   const first=EN?`We closed the book ☕ Now it's my turn to learn from you! Imagine I'm your friend and haven't read these pages: explain to me, in your own words, the most important idea you got today.`:`أغلقنا الكتاب ☕ والآن دوري أن أتعلم منك! تخيّل أني صديقك ولم أقرأ هذه الصفحات: اشرح لي بأسلوبك أهم فكرة خرجتَ بها اليوم.`;
@@ -1029,17 +1049,29 @@ function openWardGoal(){openSheet(`<h2 style="margin-top:0">🎯 وِردك ال
 function openRanks(){const t=totalMin(),r=rankOf(t);openSheet(`<h2 style="margin-top:0">🏅 مراتب القارئ</h2><div class="muted">مجموع قراءتك: <b>${t}</b> دقيقة</div><div style="margin-top:10px">${RANKS.map((x,k)=>`<div class="row" style="padding:9px 0;border-bottom:1px solid var(--line);opacity:${k<=r.i?1:.5}"><span style="font-size:22px">${x[2]}</span><b class="grow">${x[1]}</b><span class="muted">${x[0]} د</span>${k===r.i?'<span class="crown">أنت هنا</span>':''}</div>`).join('')}</div>${r.next?`<div class="muted" style="margin-top:10px">باقي <b>${r.next[0]-t}</b> دقيقة حتى «${r.next[1]}» ${r.next[2]}</div>`:''}<button style="width:100%;margin-top:14px" onclick="closeSheet()">رائع</button>`)}
 /* reminders */
 function reminderBody(){const b=[...S.books].sort((a,c)=>(c.lastRead||0)-(a.lastRead||0))[0];if(EN)return b&&b.total?`We stopped at page ${b.pos+1} of «${b.title.slice(0,40)}»… shall we continue today? 📖`:`Your daily reading is waiting… just ${goal()} minutes with Anis 🌿`;if(b&&b.total)return `توقفنا عند صفحة ${b.pos+1} من «${b.title.slice(0,40)}»… نكمل وِردك اليوم؟ 📖`;return 'وِردك اليومي في انتظارك… ${goal()} دقائق فقط مع أنيس 🌿'.replace('${goal()}',goal())}
+const QUOTES={ar:['«اقرأ»… أول كلمة نزلت من القرآن (العلق: 1)','«أحبُّ الأعمالِ إلى اللهِ أدومُها وإن قَلّ» — حديث شريف (متفق عليه)','«وخيرُ جليسٍ في الزمانِ كتابُ» — المتنبي','«حياةٌ واحدة لا تكفيني» — العقاد، عن سبب حبّه للقراءة','قراءة الكتب الجيدة كمحادثة مع أفضل عقول القرون الماضية — ديكارت','القليل الدائم خيرٌ من الكثير المنقطع 🌿','صفحة واحدة اليوم خيرٌ من لا شيء… وأنا في انتظارك','عشر دقائق الآن… وغدًا تشكر نفسك','كل كتاب تقرؤه يضيف إلى عمرك عمرًا','العقل كالعضلة… يقوى بالقراءة كل يوم'],
+ en:['"Read" — the first word revealed of the Qur\'an (96:1)','"The most beloved deeds to God are the most consistent, even if small." — Hadith (Bukhari & Muslim)','"The best companion in time is a book." — Al-Mutanabbi','"One life is not enough for me." — Abbas al-Aqqad, on why he loved reading','"The reading of all good books is like a conversation with the finest minds of past centuries." — Descartes','A little every day beats a lot now and then 🌿','One page today beats none… I\'m waiting for you','Ten minutes now… tomorrow you\'ll thank yourself','Every book you read adds a life to your life','The mind is like a muscle… daily reading makes it stronger']};
+function quoteFor(i){const q=QUOTES[EN?'en':'ar'];const k=(Math.floor(Date.now()/864e5)+i)%q.length;return q[k]}
+function notifPlan(h,mi){const out=[],st=streak(),readToday=readDays().has(today()),qOn=S.settings.quotes!==false;
+  for(let i=0;i<7;i++){const at=new Date();at.setDate(at.getDate()+i);at.setHours(h,mi,0,0);if(at<=new Date())continue;
+    let title=T('أنيس 🌿'),body;
+    if(i===0&&readToday)continue;
+    if(i===0&&st>=2){title=EN?`🔥 Your ${st}-day flame goes out tonight!`:`🔥 شعلتك (${st} ${st>10?'يومًا':'أيام'}) ستنطفئ الليلة!`;body=(S.shields?(EN?`You have 🛡️ ${S.shields} shield, but why use it? `:`معك 🛡️ ${S.shields} درع، لكن لماذا تستهلكه؟ `):'')+(EN?'5 minutes are enough to keep it alive 📖':'خمس دقائق تكفي لإنقاذها 📖')}
+    else if(i===1&&!readToday&&st>=2&&!S.shields){title=EN?'🔥 Light your flame again':'🔥 نشعلها من جديد؟';body=reminderBody()}
+    else body=(qOn?quoteFor(i)+'\n':'')+reminderBody();
+    out.push({id:1001+i,title,body,largeBody:body,schedule:{at,allowWhileIdle:true},smallIcon:'ic_stat_anis',iconColor:'#C9973F'})}
+  return out}
 async function setReminder(on,time){if(!LN){toast('التذكير يعمل داخل التطبيق المثبّت');return}
   try{if(on){let p=await LN.checkPermissions();if(p.display!=='granted'){p=await LN.requestPermissions();if(p.display!=='granted'){toast('اسمح بالإشعارات لأنيس من إعدادات الهاتف');S.settings.remind=false;save();renderReminder();return}}
     const [h,mi]=(time||S.settings.remindTime||'21:00').split(':').map(Number);S.settings.remind=true;S.settings.remindTime=`${String(h).padStart(2,'0')}:${String(mi).padStart(2,'0')}`;save();
-    await LN.cancel({notifications:[{id:1001}]}).catch(()=>{});
-    await LN.schedule({notifications:[{id:1001,title:T('أنيس 🌿'),body:reminderBody(),schedule:{on:{hour:h,minute:mi},repeats:true},smallIcon:'ic_stat_anis',iconColor:'#C9973F'}]});
+    await LN.cancel({notifications:[1001,1002,1003,1004,1005,1006,1007,1008].map(id=>({id}))}).catch(()=>{});
+    await LN.schedule({notifications:notifPlan(h,mi)});
     if(time===undefined||on===true&&!S.remindToasted){S.remindToasted=1;save();toast('سأذكّرك يوميًا الساعة '+S.settings.remindTime+' ⏰')}}
-  else{S.settings.remind=false;save();await LN.cancel({notifications:[{id:1001}]}).catch(()=>{});toast('أُوقف التذكير')}}catch(e){toast('تعذّر ضبط التذكير: '+(e.message||e))}renderReminder()}
-function renderReminder(){const b=$('remindBox');if(!b)return;if(!LN){b.style.display='none';return}$('remindChips').innerHTML=[[false,'إيقاف'],[true,'تشغيل']].map(([k,l])=>`<span class="chip ${!!S.settings.remind===k?'on':''}" onclick="setReminder(${k})">${l}</span>`).join('');$('remindTime').value=S.settings.remindTime||'21:00'}
+  else{S.settings.remind=false;save();await LN.cancel({notifications:[1001,1002,1003,1004,1005,1006,1007,1008].map(id=>({id}))}).catch(()=>{});toast('أُوقف التذكير')}}catch(e){toast('تعذّر ضبط التذكير: '+(e.message||e))}renderReminder()}
+function renderReminder(){const b=$('remindBox');if(!b)return;if(!LN){b.style.display='none';return}$('remindChips').innerHTML=[[false,'إيقاف'],[true,'تشغيل']].map(([k,l])=>`<span class="chip ${!!S.settings.remind===k?'on':''}" onclick="setReminder(${k})">${l}</span>`).join('');$('remindTime').value=S.settings.remindTime||'21:00';$('quoteChips').innerHTML=[[true,'تشغيل'],[false,'إيقاف']].map(([k,l])=>`<span class="chip ${(S.settings.quotes!==false)===k?'on':''}" onclick="S.settings.quotes=${k};save();refreshReminderBody();renderReminder()">${l}</span>`).join('')}
 function refreshReminderBody(){if(LN&&S.settings.remind)setReminder(true,S.settings.remindTime)}
 /* weekly share card */
-function weekStats(){const days=[];for(let i=0;i<7;i++){const d=new Date(Date.now()-i*864e5).toISOString().slice(0,10);days.push(d)}const ss=S.sessions.filter(x=>days.includes(x.date));return {min:ss.reduce((a,x)=>a+x.min,0),pages:ss.reduce((a,x)=>a+(x.pages||0),0),days:new Set(ss.map(x=>x.date)).size,books:new Set(ss.map(x=>x.title)).size,top:Object.entries(ss.reduce((o,x)=>(o[x.title]=(o[x.title]||0)+x.min,o),{})).sort((a,b)=>b[1]-a[1])[0]}}
+function weekStats(){const days=[];for(let i=0;i<7;i++){const d=dayAdd(today(),-i);days.push(d)}const ss=S.sessions.filter(x=>days.includes(x.date));return {min:ss.reduce((a,x)=>a+x.min,0),pages:ss.reduce((a,x)=>a+(x.pages||0),0),days:new Set(ss.map(x=>x.date)).size,books:new Set(ss.map(x=>x.title)).size,top:Object.entries(ss.reduce((o,x)=>(o[x.title]=(o[x.title]||0)+x.min,o),{})).sort((a,b)=>b[1]-a[1])[0]}}
 async function weekCanvas(){await document.fonts.ready;const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
   const g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,'#0F2A22');g.addColorStop(.55,'#1F4D3F');g.addColorStop(1,'#2E6B57');x.fillStyle=g;x.fillRect(0,0,W,H);
   x.strokeStyle='rgba(233,207,143,.10)';x.lineWidth=2;for(let yy=0;yy<H;yy+=120)for(let xx=0;xx<W;xx+=120){x.strokeRect(xx+30,yy+30,60,60);x.save();x.translate(xx+60,yy+60);x.rotate(Math.PI/4);x.strokeRect(-30,-30,60,60);x.restore()}
@@ -1146,12 +1178,12 @@ async function testKey(){saveSettings();$('testOut').textContent='جارٍ ال�
 async function exportData(){const data=JSON.stringify({journal:S.journal,cards:S.cards,notes:S.books.map(b=>({title:b.title,notes:b.notes})),sessions:S.sessions},null,1);try{await navigator.clipboard.writeText(data);toast('نُسخت البيانات ✓ الصقها في ملف أو رسالة لنفسك')}catch(e){openSheet(`<b>انسخ هذا النص واحفظه:</b><textarea style="min-height:260px;margin-top:10px;direction:ltr">${esc(data)}</textarea>`)}}
 
 /* ================= boot ================= */
-ensureSample().then(renderHome);
+ensureSample().then(()=>{guardStreak();renderHome()});
 if(location.protocol==='content:'&&!window.Capacitor)$('urlWarn').style.display='block';
 loadCfg();
 if(!S.onboarded&&!S.sessions.length)startOnboarding();
 setTimeout(async()=>{if(S.auth&&S.auth.token){await refreshAccount();claimDaily()}else if(!S.settings.key&&!S.welcomed&&S.onboarded){S.welcomed=1;save();openLogin('أهلًا بك في أنيس 🌿')}refreshReminderBody()},900);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.auth&&S.lastGiftDay!==today()){refreshAccount().then(claimDaily)}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.auth&&S.lastGiftDay!==today()){refreshAccount().then(claimDaily)}if(!document.hidden&&S.guardDay!==today()){S.guardDay=today();guardStreak();renderHome();refreshReminderBody()}});
 try{navigator.storage?.persist?.()}catch(e){}
 /* Android back button: never leave the app by accident */
 history.replaceState({s:'home'},'');history.pushState({s:'guard'},'');
